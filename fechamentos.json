@@ -1,0 +1,9 @@
+{
+  "_comentario": "Um registro por mes fechado. Adicione uma linha nova a cada fechamento; nao apague as anteriores. Isso mantem o arquivo leve (poucos KB por ano) e alimenta o filtro de data e as comparacoes do plano de voo.",
+  "2026-07": {
+    "fechadoEm": "2026-08-01",
+    "totalGerados": 0,
+    "porSpi": { "SPI1": 0, "SPI2": 0, "SPI3": 0, "SPI4": 0, "SPI5": 0, "SPI6": 0, "Sensia": 0 },
+    "metas": { "SPI1": 161, "SPI2": 109, "SPI3": 101, "SPI4": 109, "SPI5": 71, "SPI6": 131, "Sensia": 28 }
+  }
+}
