@@ -1,0 +1,2736 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head>
+<meta charset="UTF-8">
+<!-- Escala correta no celular, COM zoom liberado (pinça / duplo toque) -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Diretoria SPI — Gerados Diário</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --green-dark: #006B3F;
+    --green: #079D56;
+    --green-mid: #00D38D;
+    --green-light: #E7F5ED;
+    --ink: #1c2b22;
+    --paper: #ffffff;
+    --line: #d9e2dc;
+    --muted: #6b7d72;
+    --red: #e57373;
+    --amber: #ffb74d;
+    --yellow: #fff176;
+    --light-green: #aed581;
+    --good-green: #81c784;
+    --flight-orange: #FF8B22;
+    --flight-gray: #7c8c82;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Verdana', 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+    background:#eef2ef;
+    color:var(--ink);
+    padding:6px 10px;
+    overflow-x: hidden;
+  }
+  .wrap{max-width:1380px;margin:0 auto;}
+
+  /* ---- Topbar ---- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+    margin-bottom:6px;
+    background:var(--paper);padding:6px 12px 10px;border-radius:6px;border:1px solid var(--line);
+    position:relative;z-index:10;
+  }
+  .brand{display:flex;align-items:center;gap:8px;}
+  .brand-badge{
+    width:38px;height:38px;border-radius:50%;
+    background:conic-gradient(from 200deg, var(--green) 0 60%, var(--green-mid) 60% 100%);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:1.1;
+    border:2px solid var(--green-dark);
+  }
+  .brand h1{font-size:15px;margin:0;color:var(--green-dark);letter-spacing:.2px;}
+  .brand p{margin:0;font-size:11px;color:var(--muted);font-weight:600;}
+
+  .actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .upload-group{position:relative;}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:4px;
+    background:var(--green);color:#fff;border:none;border-radius:5px;
+    height:30px;padding:0 10px;font-size:11.5px;font-weight:600;cursor:pointer;
+    transition:background .15s;vertical-align:middle;box-sizing:border-box;
+  }
+  .btn:hover{background:var(--green-dark);}
+  .btn.secondary{background:#fff;color:var(--green-dark);border:1.5px solid var(--line);}
+  .btn.secondary:hover{background:var(--green-light);border-color:var(--green);}
+  .btn.accent{background:#fff;color:var(--green-dark);border:2px solid var(--green);}
+  .btn.accent:hover{background:var(--green-light);}
+  
+  #fileInput{display:none;}
+  .file-status{
+    position:absolute;top:100%;right:0;margin-top:2px;
+    font-size:10px;color:var(--muted);white-space:nowrap;
+  }
+
+  /* ---- Tabs ---- */
+  .tabs{
+    display:flex;gap:6px;margin-bottom:6px;border-bottom:2px solid var(--line);padding-bottom:4px;
+  }
+  .tab-btn{
+    background:transparent;border:none;padding:4px 12px;font-size:11.5px;font-weight:700;
+    color:var(--muted);cursor:pointer;border-radius:5px;transition:all .15s;
+  }
+  .tab-btn.active{
+    background:var(--green);color:#fff;
+  }
+
+  /* ---- Grid layout ---- */
+  .grid-top{
+    display:grid;grid-template-columns:320px 1fr;gap:6px;margin-bottom:6px;
+  }
+  .col-left{
+    display:flex;flex-direction:column;gap:6px;
+  }
+  .card{
+    background:var(--paper);border-radius:6px;border:1px solid var(--line);
+    box-shadow:0 1px 2px rgba(0,0,0,.03);
+  }
+  .kpi-card{padding:6px 10px;}
+  .kpi-row{display:flex;gap:8px;margin-bottom:4px;}
+  .kpi{flex:1;}
+  .kpi .num{font-size:18px;font-weight:800;color:var(--green-dark);line-height:1;}
+  .kpi .num.negative{color:#d32f2f;}
+  .kpi .lbl{font-size:10px;color:var(--muted);margin-top:1px;font-weight:600;}
+  .kpi-divider{width:1px;background:var(--line);}
+
+  .spi-card{padding:0; overflow-x:auto; -webkit-overflow-scrolling:touch;}
+
+  table.spi-table{width:100%;border-collapse:collapse;font-size:10.5px;margin:0;min-width:300px;}
+  table.spi-table th{
+    background:var(--green);color:#fff;padding:4px 2px;font-size:9.5px;
+    text-align:center;font-weight:700;
+  }
+  table.spi-table th:first-child{text-align:center;}
+  table.spi-table td{padding:3px 2px;text-align:center;border-bottom:1px solid var(--line);cursor:pointer;}
+  table.spi-table td:first-child{text-align:left;font-weight:700;color:var(--green-dark);padding-left:6px;}
+  table.spi-table tr:hover td{background:#f1f7f4;}
+  table.spi-table tr.total-row td{background:var(--green-light);font-weight:800;color:var(--green-dark);border-top:2px solid var(--green);}
+  .gap-cell{border-radius:4px;font-weight:700;padding:1px 2px;display:inline-block;min-width:32px;font-size:9.5px;color:#1c2b22;}
+
+  .chart-card{padding:6px 10px 2px;position:relative;display:flex;flex-direction:column;}
+  .chart-card h3{margin:0 0 2px;font-size:11.5px;color:var(--ink);font-weight:700;}
+  .chart-wrap{flex:1;min-height:165px;position:relative;}
+
+  .grid-bottom{display:grid;grid-template-columns:1fr 340px;gap:6px;}
+  .matrix-card{padding:6px 10px;overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .matrix-card h3{margin:0 0 4px;font-size:11.5px;color:var(--ink);font-weight:700;}
+  
+  table.matrix{
+    border-collapse:collapse;
+    font-size:10px;
+    width:auto; /* Ajustado para se adaptar ao número de dias dinamicamente */
+  }
+  table.matrix th{
+    background:var(--green);
+    color:#fff;
+    padding:2px 0;
+    font-weight:700;
+    font-size:9px;
+    text-align:center;
+    overflow:hidden;
+    white-space:nowrap;
+  }
+  table.matrix th:first-child, table.matrix td:first-child{
+    text-align:left;
+    padding-left:4px;
+    width:62px;
+    min-width:62px;
+    max-width:62px;
+    overflow:hidden;
+    white-space:nowrap;
+  }
+  table.matrix th:not(:first-child):not(:last-child),
+  table.matrix td:not(:first-child):not(:last-child) {
+    width: 20px;
+    min-width: 20px;
+    max-width: 20px;
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 2px 0;
+  }
+  table.matrix th:last-child, table.matrix td:last-child {
+    width: 34px;
+    min-width: 34px;
+    max-width: 34px;
+  }
+
+  table.matrix td{
+    padding:2px 0;
+    text-align:center;
+    border-bottom:1px solid var(--line);
+    color:var(--ink);
+    font-weight:600;
+    font-size:9.5px;
+  }
+  table.matrix td:first-child{font-weight:700;color:var(--green-dark);}
+  table.matrix tr.total-row td{background:var(--green-light);font-weight:800;border-top:2px solid var(--green);}
+  table.matrix td.total-col{font-weight:800;background:#f4f7f5;}
+
+  .week-card{padding:6px 10px;overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .week-card h3{margin:0 0 4px;font-size:11.5px;color:var(--ink);font-weight:700;}
+  table.week{width:100%;border-collapse:collapse;font-size:10.5px;min-width:300px;}
+  table.week th{background:var(--green);color:#fff;padding:3px 2px;font-weight:700;font-size:9.5px;}
+  table.week th:first-child{text-align:left;padding-left:6px;}
+  table.week td{padding:3px 2px;text-align:center;border-bottom:1px solid var(--line);}
+  table.week td:first-child{text-align:left;font-weight:700;color:var(--green-dark);padding-left:6px;}
+  table.week tr.total-row td{background:var(--green-light);font-weight:800;border-top:2px solid var(--green);}
+
+  .team-count-badge{background:var(--green-light);color:var(--green-dark);font-size:9.5px;font-weight:700;padding:1px 7px;border-radius:10px;}
+  .team-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:10px;align-items:start;}
+  .team-section{margin-bottom:0 !important;}
+  table.team-table{table-layout:auto !important;width:100%;border-collapse:collapse;font-size:11px;}
+  table.team-table th{background:var(--green);color:#fff;padding:5px 8px !important;font-weight:700;font-size:10px;text-align:center;white-space:nowrap;width:auto !important;min-width:0 !important;max-width:none !important;}
+  table.team-table th:first-child{text-align:left;width:auto !important;min-width:120px !important;max-width:none !important;padding-left:10px !important;}
+  table.team-table td{padding:5px 8px;text-align:center;border-bottom:1px solid var(--line);color:var(--ink);font-size:11px;width:auto !important;min-width:0 !important;max-width:none !important;white-space:nowrap;}
+  table.team-table td:first-child{text-align:left;font-weight:700;color:var(--ink);padding-left:10px !important;white-space:normal;}
+  table.team-table tr:hover td{background:#f0f5f1;}
+  table.team-table tr.team-group-row td{background:#eef4f0;color:var(--green-dark);font-weight:800;font-size:10.5px;text-transform:uppercase;letter-spacing:.02em;border-top:1.5px solid var(--green);padding-top:6px;padding-bottom:6px;}
+  table.team-table tr.team-group-row td:last-child{text-align:center;}
+  table.team-table tr.team-name-row td:first-child{padding-left:22px !important;font-weight:600;color:var(--ink);}
+  table.team-table tr.team-name-row:nth-child(even) td{background:#fafbfa;}
+  table.team-table tr.team-name-row td{vertical-align:top;}
+  .team-table .team-tree summary{cursor:pointer;font-weight:600;color:var(--ink);outline:none;}
+  .team-table .team-tree summary:hover{color:var(--green-dark);}
+  .team-table .team-tree[open] summary{color:var(--green-dark);margin-bottom:3px;}
+  .team-table .team-tree-list{margin:0;padding:0 0 0 15px;list-style:none;border-left:2px solid var(--green-light);}
+  .team-table .team-tree-list li{font-size:9.5px;font-weight:500;color:var(--muted);padding:2px 0 2px 6px;white-space:normal;line-height:1.35;}
+  .team-table .team-tree-loja{color:#2554a8;font-weight:600;}
+
+  .status-mini{display:flex;gap:6px;margin-top:4px;padding-top:4px;border-top:1px solid var(--line);}
+  .status-mini div{text-align:center;flex:1;cursor:pointer;padding:2px 3px;border-radius:4px;transition:background .15s;}
+  .status-mini .n{font-size:12px;font-weight:800;color:var(--green-dark);}
+  .status-mini .l{font-size:9px;color:var(--muted);font-weight:600;}
+
+  .empty-state{
+    text-align:center;padding:40px 20px;color:var(--muted);
+  }
+  .empty-state h2{color:var(--green-dark);font-size:15px;margin:0 0 4px;}
+  .empty-state p{font-size:11.5px;max-width:360px;margin:0 auto;}
+
+  .warn-banner{
+    background:#fff6e6;border:1px solid var(--amber);color:#7a5a10;
+    border-radius:5px;padding:4px 8px;font-size:11px;margin-bottom:6px;
+    display:none;align-items:center;gap:6px;
+  }
+
+  /* ---- Simulation Tab CSS ---- */
+  .sim-container{padding:10px;}
+  .sim-controls{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
+  .sim-controls select{padding:4px 8px;border:1px solid var(--line);border-radius:5px;font-size:11.5px;}
+
+  .sim-meta-bar{
+    display:flex;flex-wrap:wrap;gap:6px 10px;align-items:flex-end;
+    background:var(--green-light);border:1px solid var(--green);border-radius:5px;
+    padding:6px 10px;margin-bottom:8px;
+  }
+  .sim-meta-bar .sim-meta-title{
+    width:100%;font-size:10.5px;font-weight:700;color:var(--green-dark);margin-bottom:2px;
+  }
+  .sim-meta-field{display:flex;flex-direction:column;gap:2px;align-items:center;}
+  .sim-meta-field label{font-size:9.5px;color:var(--green-dark);font-weight:700;text-align:center;}
+  .sim-meta-field input{
+    width:78px;padding:4px 5px;border:1.5px solid var(--green);border-radius:5px;
+    font-size:11.5px;font-weight:700;text-align:center;color:var(--green-dark);background:#fff;
+  }
+
+  .pdv-scroll-wrap{
+    max-height: 420px;
+    overflow-y: auto;
+    overflow-x: scroll;
+    border-radius:5px;
+    border: 1px solid var(--line);
+    scrollbar-width:auto;
+    scrollbar-color:var(--green) #e3ebe6;
+    -webkit-overflow-scrolling: touch;
+  }
+  .pdv-scroll-wrap::-webkit-scrollbar{height:10px;width:7px;}
+  .pdv-scroll-wrap::-webkit-scrollbar-track{background:#e3ebe6;border-radius:5px;}
+  .pdv-scroll-wrap::-webkit-scrollbar-thumb{background:var(--green);border-radius:5px;}
+
+  /* Wrapper das tabelas de Gerentes & Supervisores: sem limite de altura e sem
+     scroll interno, para dar pra tirar print/screenshot de tudo de uma vez. */
+  .team-scroll-wrap{
+    max-height:none;
+    overflow-y:visible;
+    overflow-x:auto;
+    border-radius:5px;
+    border:1px solid var(--line);
+  }
+
+  table.pdv-table{width:100%;border-collapse:separate;border-spacing:0;font-size:10px;min-width:1000px;}
+  table.pdv-table th{background:var(--green);color:#fff;padding:4px 2px;font-size:9.5px;text-align:center;border:1px solid #057d45;position:sticky;z-index:4;}
+  table.pdv-table thead tr:nth-child(1) th { top: 0; }
+  table.pdv-table thead tr:nth-child(2) th { top: 22px; }
+
+  table.pdv-table td{padding:2px 2px;text-align:center;border:1px solid var(--line);color:var(--ink);font-weight:600;}
+  table.pdv-table input[type="text"]{width:48px;padding:2px;text-align:center;border:1px solid var(--line);border-radius:3px;font-size:10px;background:#fff;}
+  table.pdv-table tr.total-row td{background:var(--green-light);font-weight:800;border-top:2px solid var(--green);}
+
+  table.pdv-table th:nth-child(1), table.pdv-table td:nth-child(1){position:sticky;left:0;min-width:70px;z-index:2;}
+  table.pdv-table th:nth-child(2), table.pdv-table td:nth-child(2){position:sticky;left:70px;min-width:52px;z-index:2;}
+  table.pdv-table th:nth-child(3), table.pdv-table td:nth-child(3){position:sticky;left:122px;min-width:48px;z-index:2;}
+  table.pdv-table th:nth-child(1), table.pdv-table th:nth-child(2), table.pdv-table th:nth-child(3){z-index:5;background:var(--green);}
+  table.pdv-table td:nth-child(1), table.pdv-table td:nth-child(2), table.pdv-table td:nth-child(3){background:#fbfdfb;}
+  table.pdv-table tr.total-row td:nth-child(1), table.pdv-table tr.total-row td:nth-child(2), table.pdv-table tr.total-row td:nth-child(3){background:var(--green-light);}
+
+  /* ---- Modal ---- */
+  .modal-overlay{
+    display:none;position:fixed;inset:0;background:rgba(15,30,20,.55);
+    align-items:center;justify-content:center;z-index:100;padding:12px;
+  }
+  .modal{
+    background:#fff;border-radius:8px;width:100%;max-width:640px;max-height:80vh;
+    overflow-y:auto;padding:14px 16px;
+  }
+  .modal h2{margin:0 0 2px;font-size:14px;color:var(--green-dark);}
+  .modal .sub{font-size:11px;color:var(--muted);margin:0;}
+  .modal h4{font-size:11.5px;color:var(--ink);margin:10px 0 4px;border-bottom:1px solid var(--line);padding-bottom:2px;}
+  .map-row{display:grid;grid-template-columns:1fr 140px;gap:6px;align-items:center;padding:3px 0;border-bottom:1px solid #f0f2f0;}
+  .map-row span{font-size:11.5px;}
+  .map-row select{padding:3px 5px;border:1px solid var(--line);border-radius:5px;font-size:11.5px;width:100%;}
+  .modal-topbar{
+    position:sticky;top:0;background:#fff;z-index:6;
+    display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+    padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid var(--line);
+  }
+  .modal-topbar-actions{display:flex;gap:6px;align-items:center;flex-shrink:0;}
+  .modal-close{background:none;border:none;font-size:16px;cursor:pointer;color:var(--muted);line-height:1;padding:2px;}
+  .empty-map{font-size:11px;color:var(--muted);padding:4px 0;}
+
+  /* ---- Print Styles ---- */
+  @media print {
+    @page { size: landscape; margin: 4mm; }
+    body { background: #fff !important; padding: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .topbar, .actions, .tabs, .btn, .upload-group, #settingsBtn, #exportXmlBtn { display: none !important; }
+    #teamWeekSelect, #teamPrintBtn { display: none !important; }
+    .team-scroll-wrap { max-height:none !important; overflow:visible !important; }
+    .card { box-shadow: none !important; border: 1px solid var(--line) !important; page-break-inside: avoid; margin-bottom: 4px !important; padding: 6px !important; }
+    .wrap { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+    #dashboard { display: block !important; }
+    .grid-top { margin-bottom: 4px !important; gap: 4px !important; }
+    .grid-bottom { gap: 4px !important; }
+    .chart-wrap { min-height: 140px !important; }
+  }
+
+  /* ---- Responsividade Mobile ---- */
+  @media (max-width: 850px) {
+    body { padding: 4px; }
+    .grid-top, .grid-bottom { grid-template-columns: 1fr; }
+    .actions { width: 100%; flex-direction: column; align-items: stretch; }
+    .actions .btn, .actions .upload-group { width: 100%; }
+    .file-status { position: relative; top: auto; right: auto; margin-top: 2px; text-align: center; display: block; }
+    .btn { height: 38px; font-size: 12px; }
+    .tab-btn { padding: 8px 12px; font-size: 12px; width: 100%; text-align: center; }
+    .tabs { flex-wrap: wrap; }
+    .chart-wrap { min-height: 180px; }
+  }
+</style>
+<meta id="exportMeta" name="export-timestamp" content="1788263887199"></head>
+<body>
+<noscript>
+  <div style="background:#d32f2f;color:#fff;padding:10px;text-align:center;font-weight:bold;margin-bottom:10px;border-radius:5px;font-family:sans-serif;">
+    ⚠️ ALERTA: O painel está bloqueado no SharePoint/OneDrive. Faça o download do arquivo e abra no navegador (Chrome, Edge ou Safari).
+  </div>
+</noscript>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-badge">SPI</div>
+      <div>
+        <h1>Diretoria SPI</h1>
+        <p>Gerados diário</p>
+      </div>
+    </div>
+    
+    <div class="actions">
+      <button class="btn secondary" id="settingsBtn" type="button">⚙ Config.</button>
+      <button class="btn secondary" id="exportXmlBtn" type="button">⬇ Baixar XML</button>
+      <div class="upload-group">
+        <button class="btn" id="uploadBtn" type="button">⭱ Carregar XML</button>
+        <input type="file" id="fileInput" accept=".xml">
+        <div class="file-status" id="fileStatus">Atualizado em: 01/09/2026 08:57</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabDashBtn" onclick="switchTab('dash')">📊 Painel Executivo</button>
+    <button class="tab-btn" id="tabSimBtn" onclick="switchTab('sim')">📋 Simulação Plano de Voo</button>
+    <button class="tab-btn" id="tabHistBtn" onclick="switchTab('hist')">🗓 Histórico</button>
+    <button class="tab-btn" id="tabTeamBtn" onclick="switchTab('team')">👥 Gerentes & Supervisores</button>
+  </div>
+
+  <div class="warn-banner" id="unmappedWarning" style="display: none;">⚠ 1 contrato(s) de 1 empreendimento(s) ainda sem SPI definido. Abra "Configurações" para mapear: PARQUE RIO CORAIS</div>
+
+  <div id="emptyState" class="card empty-state" style="display: block;">
+    <h2>Nenhum dado carregado ainda</h2>
+    <p>Buscando dados atualizados do GitHub ou selecione um arquivo XML...</p>
+  </div>
+
+  <!-- ---- ABA 1: PAINEL EXECUTIVO ---- -->
+  <div id="tabDashContent">
+    <div id="dashboard" style="display: none;">
+      <div id="filterBanner" style="display:none; background:var(--green-light); border:1px solid var(--green); padding:4px 8px; border-radius:5px; margin-bottom:6px; font-size:11px; font-weight:700; color:var(--green-dark); justify-content:space-between; align-items:center;">
+        <span id="filterBannerText">Filtrando</span>
+        <button class="btn secondary" style="height:22px; padding:0 6px; font-size:10px;" onclick="clearFilters()">Remover Filtros</button>
+      </div>
+
+      <div class="grid-top">
+        <div class="col-left">
+          <div class="card kpi-card">
+            <div class="kpi-row">
+              <div class="kpi"><div class="num" id="kpiMeta">0</div><div class="lbl">Meta</div></div>
+              <div class="kpi-divider"></div>
+              <div class="kpi"><div class="num" id="kpiRealizado">0</div><div class="lbl">Realizado</div></div>
+              <div class="kpi-divider"></div>
+              <div class="kpi"><div class="num" id="kpiGapPct">0,0%</div><div class="lbl">Ating.</div></div>
+            </div>
+            <div class="kpi-row" style="margin-bottom:4px;">
+              <div class="kpi"><div class="num" id="kpiGapQtd">0</div><div class="lbl">GAP Qtd</div></div>
+              <div class="kpi-divider"></div>
+              <div class="kpi"><div class="num" id="kpiVendasDia">0</div><div class="lbl">Vendas/Dia (Restantes)</div></div>
+            </div>
+            <div class="status-mini">
+              <div id="statBoxAtivo" onclick="selectedStatusFilter = (selectedStatusFilter === 'Ativo') ? null : 'Ativo'; render();" style="background: transparent;">
+                <div class="n" id="statAtivo">0</div><div class="l">Ativo</div>
+              </div>
+              <div id="statBoxPreAtivo" onclick="selectedStatusFilter = (selectedStatusFilter === 'Pré-Ativo') ? null : 'Pré-Ativo'; render();" style="background: transparent;">
+                <div class="n" id="statPreAtivo">0</div><div class="l">Pré-Ativo</div>
+              </div>
+              <div id="statBoxRascunho" onclick="selectedStatusFilter = (selectedStatusFilter === 'Rascunho') ? null : 'Rascunho'; render();" style="background: transparent;">
+                <div class="n" id="statRascunho">0</div><div class="l">Rascunho</div>
+              </div>
+              <div id="statBoxTotal" onclick="selectedStatusFilter = null; render();" style="background: rgb(209, 231, 221);">
+                <div class="n" id="statTotal">0</div><div class="l">Total</div>
+              </div>
+            </div>
+            <div class="status-mini" style="margin-top:4px;">
+              <div id="statBoxHouse" onclick="selectedChannelFilter = (selectedChannelFilter === 'HOUSE') ? null : 'HOUSE'; render();" style="background: transparent;">
+                <div class="n" id="statHouse">0</div><div class="l">House</div>
+              </div>
+              <div id="statBoxImob" onclick="selectedChannelFilter = (selectedChannelFilter === 'IMOB') ? null : 'IMOB'; render();" style="background: transparent;">
+                <div class="n" id="statImob">0</div><div class="l">Imob</div>
+              </div>
+              <div id="statBoxAGS" onclick="selectedChannelFilter = (selectedChannelFilter === 'AGS') ? null : 'AGS'; render();" style="background: transparent;">
+                <div class="n" id="statAGS">0</div><div class="l">AGS</div>
+              </div>
+              <div id="statBoxCanalTodos" onclick="selectedChannelFilter = null; render();" style="background: rgb(209, 231, 221);">
+                <div class="n" id="statCanalTodos">0</div><div class="l">Todos</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card spi-card">
+            <table class="spi-table" id="spiTable">
+              <thead>
+                <tr><th>SPI</th><th>Meta</th><th>Realizado</th><th>Ating.</th><th>GAP Qtd</th><th>V. Dia (Rest.)</th></tr>
+              </thead>
+              <tbody id="spiTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card chart-card">
+          <h3>Plano de Voo</h3>
+          <div style="display:flex; gap:12px; font-size:10px; font-weight:600; margin-bottom:1px; color:var(--muted);">
+            <span style="display:flex; align-items:center; gap:3px;"><span style="display:inline-block; width:8px; height:8px; background:#7c8c82; border-radius:2px;"></span> Planejado</span>
+            <span style="display:flex; align-items:center; gap:3px;"><span style="display:inline-block; width:8px; height:8px; background:#FF8B22; border-radius:2px;"></span> Real</span>
+          </div>
+          <div class="chart-wrap" id="mainChartWrap"></div>
+        </div>
+      </div>
+
+      <div class="grid-bottom">
+        <div class="card matrix-card">
+          <h3>Gerados por dia — SPI</h3>
+          <table class="matrix" id="matrixTable"></table>
+        </div>
+        <div class="card week-card">
+          <h3>Gerados por semana — SPI</h3>
+          <table class="week" id="weekTable"></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- ABA 2: SIMULAÇÃO PLANO DE VOO ---- -->
+  <div id="tabSimContent" style="display:none;">
+    <div class="card sim-container">
+      <div class="sim-controls">
+        <div>
+          <h3 style="margin:0 0 2px;font-size:12px;color:var(--green-dark);">Planejamento de Vendas — Curva e Lançamentos</h3>
+          <p style="font-size:10px;color:var(--muted);margin:0;">As metas informadas calculam % e Norm automaticamente com base nos pesos dos quarters e dias da semana.</p>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;margin-right:4px;">Filtrar Regional:</label>
+          <select id="simRegionalFilter" onchange="buildSimMetaBar(); renderPdvTable();"><option value="ALL">Todas as Regionais (SPIs)</option><option value="SPI1">SPI 1</option><option value="SPI2">SPI 2</option><option value="SPI3">SPI 3</option><option value="SPI4">SPI 4</option><option value="SPI5">SPI 5</option><option value="SPI6">SPI 6</option><option value="Sensia">SPI Sensia</option></select>
+        </div>
+        <button class="btn secondary" onclick="resetSimulations()" type="button" style="padding:0 8px;font-size:10px;height:28px;">Restaurar Padrão</button>
+        <button class="btn accent" onclick="baixarPlanejamento()" type="button" style="padding:0 8px;font-size:10px;height:28px;">💾 Baixar planejamento.json</button>
+      </div>
+
+      <div class="sim-meta-bar" id="simMetaBar"><div class="sim-meta-title">🎯 Meta mensal por SPI — edite aqui e a tabela recalcula (%, Norm, Ass/Dia e Acum) na hora</div><div class="sim-meta-field"><label>SPI 1</label><input type="number" min="0" inputmode="numeric" data-metakey="SPI1" value="161"></div><div class="sim-meta-field"><label>SPI 2</label><input type="number" min="0" inputmode="numeric" data-metakey="SPI2" value="109"></div><div class="sim-meta-field"><label>SPI 3</label><input type="number" min="0" inputmode="numeric" data-metakey="SPI3" value="101"></div><div class="sim-meta-field"><label>SPI 4</label><input type="number" min="0" inputmode="numeric" data-metakey="SPI4" value="109"></div><div class="sim-meta-field"><label>SPI 5</label><input type="number" min="0" inputmode="numeric" data-metakey="SPI5" value="71"></div><div class="sim-meta-field"><label>SPI 6</label><input type="number" min="0" inputmode="numeric" data-metakey="SPI6" value="131"></div><div class="sim-meta-field"><label>SPI Sensia</label><input type="number" min="0" inputmode="numeric" data-metakey="Sensia" value="28"></div></div>
+      <div id="simMonthLabel" style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px;">Mês em cálculo (base no XML carregado): agosto de 2026</div>
+
+      <div class="pdv-scroll-wrap">
+        <table class="pdv-table" id="pdvTable"><tbody><tr>
+    <th rowspan="2">Dias</th>
+    <th rowspan="2">Dia da Sem</th>
+    <th rowspan="2">Quarter</th><th colspan="4" style="text-align:center;">SPI 1</th><th colspan="4" style="text-align:center;">SPI 2</th><th colspan="4" style="text-align:center;">SPI 3</th><th colspan="4" style="text-align:center;">SPI 4</th><th colspan="4" style="text-align:center;">SPI 5</th><th colspan="4" style="text-align:center;">SPI 6</th><th colspan="4" style="text-align:center;">SPI Sensia</th></tr><tr><th>%</th><th>Norm</th><th>Ass/Dia</th><th>Acum</th><th>%</th><th>Norm</th><th>Ass/Dia</th><th>Acum</th><th>%</th><th>Norm</th><th>Ass/Dia</th><th>Acum</th><th>%</th><th>Norm</th><th>Ass/Dia</th><th>Acum</th><th>%</th><th>Norm</th><th>Ass/Dia</th><th>Acum</th><th>%</th><th>Norm</th><th>Ass/Dia</th><th>Acum</th><th>%</th><th>Norm</th><th>Ass/Dia</th><th>Acum</th></tr><tr>
+      <td>01/08/2026</td>
+      <td>sáb</td>
+      <td>1</td><td><input type="text" value="2,6250" data-spi="SPI1" data-day="1" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 1)">%</td>
+        <td>0,0241</td>
+        <td>3,87</td>
+        <td style="font-weight:700; background:#f9fbf9;">4</td><td><input type="text" value="2,6250" data-spi="SPI2" data-day="1" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 1)">%</td>
+        <td>0,0241</td>
+        <td>2,62</td>
+        <td style="font-weight:700; background:#f9fbf9;">3</td><td><input type="text" value="2,6250" data-spi="SPI3" data-day="1" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 1)">%</td>
+        <td>0,0241</td>
+        <td>2,43</td>
+        <td style="font-weight:700; background:#f9fbf9;">2</td><td><input type="text" value="2,6250" data-spi="SPI4" data-day="1" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 1)">%</td>
+        <td>0,0241</td>
+        <td>2,62</td>
+        <td style="font-weight:700; background:#f9fbf9;">3</td><td><input type="text" value="2,6250" data-spi="SPI5" data-day="1" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 1)">%</td>
+        <td>0,0241</td>
+        <td>1,71</td>
+        <td style="font-weight:700; background:#f9fbf9;">2</td><td><input type="text" value="2,6250" data-spi="SPI6" data-day="1" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 1)">%</td>
+        <td>0,0241</td>
+        <td>3,15</td>
+        <td style="font-weight:700; background:#f9fbf9;">3</td><td><input type="text" value="2,6250" data-spi="Sensia" data-day="1" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 1)">%</td>
+        <td>0,0241</td>
+        <td>0,67</td>
+        <td style="font-weight:700; background:#f9fbf9;">1</td></tr><tr>
+      <td>02/08/2026</td>
+      <td>dom</td>
+      <td>1</td><td><input type="text" value="0,6000" data-spi="SPI1" data-day="2" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 2)">%</td>
+        <td>0,0055</td>
+        <td>0,89</td>
+        <td style="font-weight:700; background:#f9fbf9;">5</td><td><input type="text" value="0,6000" data-spi="SPI2" data-day="2" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 2)">%</td>
+        <td>0,0055</td>
+        <td>0,60</td>
+        <td style="font-weight:700; background:#f9fbf9;">3</td><td><input type="text" value="0,6000" data-spi="SPI3" data-day="2" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 2)">%</td>
+        <td>0,0055</td>
+        <td>0,56</td>
+        <td style="font-weight:700; background:#f9fbf9;">3</td><td><input type="text" value="0,6000" data-spi="SPI4" data-day="2" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 2)">%</td>
+        <td>0,0055</td>
+        <td>0,60</td>
+        <td style="font-weight:700; background:#f9fbf9;">3</td><td><input type="text" value="0,6000" data-spi="SPI5" data-day="2" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 2)">%</td>
+        <td>0,0055</td>
+        <td>0,39</td>
+        <td style="font-weight:700; background:#f9fbf9;">2</td><td><input type="text" value="0,6000" data-spi="SPI6" data-day="2" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 2)">%</td>
+        <td>0,0055</td>
+        <td>0,72</td>
+        <td style="font-weight:700; background:#f9fbf9;">4</td><td><input type="text" value="0,6000" data-spi="Sensia" data-day="2" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 2)">%</td>
+        <td>0,0055</td>
+        <td>0,15</td>
+        <td style="font-weight:700; background:#f9fbf9;">1</td></tr><tr>
+      <td>03/08/2026</td>
+      <td>seg</td>
+      <td>1</td><td><input type="text" value="2,1750" data-spi="SPI1" data-day="3" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 3)">%</td>
+        <td>0,0199</td>
+        <td>3,21</td>
+        <td style="font-weight:700; background:#f9fbf9;">8</td><td><input type="text" value="2,1750" data-spi="SPI2" data-day="3" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 3)">%</td>
+        <td>0,0199</td>
+        <td>2,17</td>
+        <td style="font-weight:700; background:#f9fbf9;">5</td><td><input type="text" value="2,1750" data-spi="SPI3" data-day="3" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 3)">%</td>
+        <td>0,0199</td>
+        <td>2,01</td>
+        <td style="font-weight:700; background:#f9fbf9;">5</td><td><input type="text" value="2,1750" data-spi="SPI4" data-day="3" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 3)">%</td>
+        <td>0,0199</td>
+        <td>2,17</td>
+        <td style="font-weight:700; background:#f9fbf9;">5</td><td><input type="text" value="2,1750" data-spi="SPI5" data-day="3" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 3)">%</td>
+        <td>0,0199</td>
+        <td>1,42</td>
+        <td style="font-weight:700; background:#f9fbf9;">4</td><td><input type="text" value="2,1750" data-spi="SPI6" data-day="3" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 3)">%</td>
+        <td>0,0199</td>
+        <td>2,61</td>
+        <td style="font-weight:700; background:#f9fbf9;">6</td><td><input type="text" value="2,1750" data-spi="Sensia" data-day="3" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 3)">%</td>
+        <td>0,0199</td>
+        <td>0,56</td>
+        <td style="font-weight:700; background:#f9fbf9;">1</td></tr><tr>
+      <td>04/08/2026</td>
+      <td>ter</td>
+      <td>1</td><td><input type="text" value="2,3250" data-spi="SPI1" data-day="4" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 4)">%</td>
+        <td>0,0213</td>
+        <td>3,43</td>
+        <td style="font-weight:700; background:#f9fbf9;">11</td><td><input type="text" value="2,3250" data-spi="SPI2" data-day="4" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 4)">%</td>
+        <td>0,0213</td>
+        <td>2,32</td>
+        <td style="font-weight:700; background:#f9fbf9;">8</td><td><input type="text" value="2,3250" data-spi="SPI3" data-day="4" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 4)">%</td>
+        <td>0,0213</td>
+        <td>2,15</td>
+        <td style="font-weight:700; background:#f9fbf9;">7</td><td><input type="text" value="2,3250" data-spi="SPI4" data-day="4" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 4)">%</td>
+        <td>0,0213</td>
+        <td>2,32</td>
+        <td style="font-weight:700; background:#f9fbf9;">8</td><td><input type="text" value="2,3250" data-spi="SPI5" data-day="4" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 4)">%</td>
+        <td>0,0213</td>
+        <td>1,51</td>
+        <td style="font-weight:700; background:#f9fbf9;">5</td><td><input type="text" value="2,3250" data-spi="SPI6" data-day="4" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 4)">%</td>
+        <td>0,0213</td>
+        <td>2,79</td>
+        <td style="font-weight:700; background:#f9fbf9;">9</td><td><input type="text" value="2,3250" data-spi="Sensia" data-day="4" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 4)">%</td>
+        <td>0,0213</td>
+        <td>0,60</td>
+        <td style="font-weight:700; background:#f9fbf9;">2</td></tr><tr>
+      <td>05/08/2026</td>
+      <td>qua</td>
+      <td>1</td><td><input type="text" value="2,4750" data-spi="SPI1" data-day="5" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 5)">%</td>
+        <td>0,0227</td>
+        <td>3,65</td>
+        <td style="font-weight:700; background:#f9fbf9;">15</td><td><input type="text" value="2,4750" data-spi="SPI2" data-day="5" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 5)">%</td>
+        <td>0,0227</td>
+        <td>2,47</td>
+        <td style="font-weight:700; background:#f9fbf9;">10</td><td><input type="text" value="2,4750" data-spi="SPI3" data-day="5" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 5)">%</td>
+        <td>0,0227</td>
+        <td>2,29</td>
+        <td style="font-weight:700; background:#f9fbf9;">9</td><td><input type="text" value="2,4750" data-spi="SPI4" data-day="5" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 5)">%</td>
+        <td>0,0227</td>
+        <td>2,47</td>
+        <td style="font-weight:700; background:#f9fbf9;">10</td><td><input type="text" value="2,4750" data-spi="SPI5" data-day="5" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 5)">%</td>
+        <td>0,0227</td>
+        <td>1,61</td>
+        <td style="font-weight:700; background:#f9fbf9;">7</td><td><input type="text" value="2,4750" data-spi="SPI6" data-day="5" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 5)">%</td>
+        <td>0,0227</td>
+        <td>2,97</td>
+        <td style="font-weight:700; background:#f9fbf9;">12</td><td><input type="text" value="2,4750" data-spi="Sensia" data-day="5" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 5)">%</td>
+        <td>0,0227</td>
+        <td>0,64</td>
+        <td style="font-weight:700; background:#f9fbf9;">3</td></tr><tr>
+      <td>06/08/2026</td>
+      <td>qui</td>
+      <td>1</td><td><input type="text" value="2,2500" data-spi="SPI1" data-day="6" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 6)">%</td>
+        <td>0,0206</td>
+        <td>3,32</td>
+        <td style="font-weight:700; background:#f9fbf9;">18</td><td><input type="text" value="2,2500" data-spi="SPI2" data-day="6" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 6)">%</td>
+        <td>0,0206</td>
+        <td>2,25</td>
+        <td style="font-weight:700; background:#f9fbf9;">12</td><td><input type="text" value="2,2500" data-spi="SPI3" data-day="6" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 6)">%</td>
+        <td>0,0206</td>
+        <td>2,08</td>
+        <td style="font-weight:700; background:#f9fbf9;">12</td><td><input type="text" value="2,2500" data-spi="SPI4" data-day="6" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 6)">%</td>
+        <td>0,0206</td>
+        <td>2,25</td>
+        <td style="font-weight:700; background:#f9fbf9;">12</td><td><input type="text" value="2,2500" data-spi="SPI5" data-day="6" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 6)">%</td>
+        <td>0,0206</td>
+        <td>1,46</td>
+        <td style="font-weight:700; background:#f9fbf9;">8</td><td><input type="text" value="2,2500" data-spi="SPI6" data-day="6" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 6)">%</td>
+        <td>0,0206</td>
+        <td>2,70</td>
+        <td style="font-weight:700; background:#f9fbf9;">15</td><td><input type="text" value="2,2500" data-spi="Sensia" data-day="6" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 6)">%</td>
+        <td>0,0206</td>
+        <td>0,58</td>
+        <td style="font-weight:700; background:#f9fbf9;">3</td></tr><tr>
+      <td>07/08/2026</td>
+      <td>sex</td>
+      <td>1</td><td><input type="text" value="2,5500" data-spi="SPI1" data-day="7" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 7)">%</td>
+        <td>0,0234</td>
+        <td>3,76</td>
+        <td style="font-weight:700; background:#f9fbf9;">22</td><td><input type="text" value="2,5500" data-spi="SPI2" data-day="7" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 7)">%</td>
+        <td>0,0234</td>
+        <td>2,55</td>
+        <td style="font-weight:700; background:#f9fbf9;">15</td><td><input type="text" value="2,5500" data-spi="SPI3" data-day="7" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 7)">%</td>
+        <td>0,0234</td>
+        <td>2,36</td>
+        <td style="font-weight:700; background:#f9fbf9;">14</td><td><input type="text" value="2,5500" data-spi="SPI4" data-day="7" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 7)">%</td>
+        <td>0,0234</td>
+        <td>2,55</td>
+        <td style="font-weight:700; background:#f9fbf9;">15</td><td><input type="text" value="2,5500" data-spi="SPI5" data-day="7" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 7)">%</td>
+        <td>0,0234</td>
+        <td>1,66</td>
+        <td style="font-weight:700; background:#f9fbf9;">10</td><td><input type="text" value="2,5500" data-spi="SPI6" data-day="7" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 7)">%</td>
+        <td>0,0234</td>
+        <td>3,06</td>
+        <td style="font-weight:700; background:#f9fbf9;">18</td><td><input type="text" value="2,5500" data-spi="Sensia" data-day="7" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 7)">%</td>
+        <td>0,0234</td>
+        <td>0,65</td>
+        <td style="font-weight:700; background:#f9fbf9;">4</td></tr><tr>
+      <td>08/08/2026</td>
+      <td>sáb</td>
+      <td>1</td><td><input type="text" value="2,6250" data-spi="SPI1" data-day="8" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 8)">%</td>
+        <td>0,0241</td>
+        <td>3,87</td>
+        <td style="font-weight:700; background:#f9fbf9;">26</td><td><input type="text" value="2,6250" data-spi="SPI2" data-day="8" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 8)">%</td>
+        <td>0,0241</td>
+        <td>2,62</td>
+        <td style="font-weight:700; background:#f9fbf9;">18</td><td><input type="text" value="2,6250" data-spi="SPI3" data-day="8" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 8)">%</td>
+        <td>0,0241</td>
+        <td>2,43</td>
+        <td style="font-weight:700; background:#f9fbf9;">16</td><td><input type="text" value="2,6250" data-spi="SPI4" data-day="8" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 8)">%</td>
+        <td>0,0241</td>
+        <td>2,62</td>
+        <td style="font-weight:700; background:#f9fbf9;">18</td><td><input type="text" value="2,6250" data-spi="SPI5" data-day="8" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 8)">%</td>
+        <td>0,0241</td>
+        <td>1,71</td>
+        <td style="font-weight:700; background:#f9fbf9;">11</td><td><input type="text" value="2,6250" data-spi="SPI6" data-day="8" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 8)">%</td>
+        <td>0,0241</td>
+        <td>3,15</td>
+        <td style="font-weight:700; background:#f9fbf9;">21</td><td><input type="text" value="2,6250" data-spi="Sensia" data-day="8" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 8)">%</td>
+        <td>0,0241</td>
+        <td>0,67</td>
+        <td style="font-weight:700; background:#f9fbf9;">5</td></tr><tr>
+      <td>09/08/2026</td>
+      <td>dom</td>
+      <td>2</td><td><input type="text" value="1,0000" data-spi="SPI1" data-day="9" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 9)">%</td>
+        <td>0,0092</td>
+        <td>1,48</td>
+        <td style="font-weight:700; background:#f9fbf9;">27</td><td><input type="text" value="1,0000" data-spi="SPI2" data-day="9" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 9)">%</td>
+        <td>0,0092</td>
+        <td>1,00</td>
+        <td style="font-weight:700; background:#f9fbf9;">19</td><td><input type="text" value="1,0000" data-spi="SPI3" data-day="9" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 9)">%</td>
+        <td>0,0092</td>
+        <td>0,93</td>
+        <td style="font-weight:700; background:#f9fbf9;">17</td><td><input type="text" value="1,0000" data-spi="SPI4" data-day="9" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 9)">%</td>
+        <td>0,0092</td>
+        <td>1,00</td>
+        <td style="font-weight:700; background:#f9fbf9;">19</td><td><input type="text" value="1,0000" data-spi="SPI5" data-day="9" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 9)">%</td>
+        <td>0,0092</td>
+        <td>0,65</td>
+        <td style="font-weight:700; background:#f9fbf9;">12</td><td><input type="text" value="1,0000" data-spi="SPI6" data-day="9" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 9)">%</td>
+        <td>0,0092</td>
+        <td>1,20</td>
+        <td style="font-weight:700; background:#f9fbf9;">22</td><td><input type="text" value="1,0000" data-spi="Sensia" data-day="9" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 9)">%</td>
+        <td>0,0092</td>
+        <td>0,26</td>
+        <td style="font-weight:700; background:#f9fbf9;">5</td></tr><tr>
+      <td>10/08/2026</td>
+      <td>seg</td>
+      <td>2</td><td><input type="text" value="3,6250" data-spi="SPI1" data-day="10" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 10)">%</td>
+        <td>0,0332</td>
+        <td>5,35</td>
+        <td style="font-weight:700; background:#f9fbf9;">33</td><td><input type="text" value="3,6250" data-spi="SPI2" data-day="10" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 10)">%</td>
+        <td>0,0332</td>
+        <td>3,62</td>
+        <td style="font-weight:700; background:#f9fbf9;">22</td><td><input type="text" value="3,6250" data-spi="SPI3" data-day="10" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 10)">%</td>
+        <td>0,0332</td>
+        <td>3,36</td>
+        <td style="font-weight:700; background:#f9fbf9;">21</td><td><input type="text" value="3,6250" data-spi="SPI4" data-day="10" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 10)">%</td>
+        <td>0,0332</td>
+        <td>3,62</td>
+        <td style="font-weight:700; background:#f9fbf9;">22</td><td><input type="text" value="3,6250" data-spi="SPI5" data-day="10" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 10)">%</td>
+        <td>0,0332</td>
+        <td>2,36</td>
+        <td style="font-weight:700; background:#f9fbf9;">14</td><td><input type="text" value="3,6250" data-spi="SPI6" data-day="10" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 10)">%</td>
+        <td>0,0332</td>
+        <td>4,35</td>
+        <td style="font-weight:700; background:#f9fbf9;">27</td><td><input type="text" value="3,6250" data-spi="Sensia" data-day="10" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 10)">%</td>
+        <td>0,0332</td>
+        <td>0,93</td>
+        <td style="font-weight:700; background:#f9fbf9;">6</td></tr><tr>
+      <td>11/08/2026</td>
+      <td>ter</td>
+      <td>2</td><td><input type="text" value="3,8750" data-spi="SPI1" data-day="11" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 11)">%</td>
+        <td>0,0355</td>
+        <td>5,72</td>
+        <td style="font-weight:700; background:#f9fbf9;">39</td><td><input type="text" value="3,8750" data-spi="SPI2" data-day="11" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 11)">%</td>
+        <td>0,0355</td>
+        <td>3,87</td>
+        <td style="font-weight:700; background:#f9fbf9;">26</td><td><input type="text" value="3,8750" data-spi="SPI3" data-day="11" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 11)">%</td>
+        <td>0,0355</td>
+        <td>3,59</td>
+        <td style="font-weight:700; background:#f9fbf9;">24</td><td><input type="text" value="3,8750" data-spi="SPI4" data-day="11" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 11)">%</td>
+        <td>0,0355</td>
+        <td>3,87</td>
+        <td style="font-weight:700; background:#f9fbf9;">26</td><td><input type="text" value="3,8750" data-spi="SPI5" data-day="11" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 11)">%</td>
+        <td>0,0355</td>
+        <td>2,52</td>
+        <td style="font-weight:700; background:#f9fbf9;">17</td><td><input type="text" value="3,8750" data-spi="SPI6" data-day="11" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 11)">%</td>
+        <td>0,0355</td>
+        <td>4,65</td>
+        <td style="font-weight:700; background:#f9fbf9;">31</td><td><input type="text" value="3,8750" data-spi="Sensia" data-day="11" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 11)">%</td>
+        <td>0,0355</td>
+        <td>0,99</td>
+        <td style="font-weight:700; background:#f9fbf9;">7</td></tr><tr>
+      <td>12/08/2026</td>
+      <td>qua</td>
+      <td>2</td><td><input type="text" value="4,1250" data-spi="SPI1" data-day="12" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 12)">%</td>
+        <td>0,0378</td>
+        <td>6,09</td>
+        <td style="font-weight:700; background:#f9fbf9;">45</td><td><input type="text" value="4,1250" data-spi="SPI2" data-day="12" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 12)">%</td>
+        <td>0,0378</td>
+        <td>4,12</td>
+        <td style="font-weight:700; background:#f9fbf9;">30</td><td><input type="text" value="4,1250" data-spi="SPI3" data-day="12" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 12)">%</td>
+        <td>0,0378</td>
+        <td>3,82</td>
+        <td style="font-weight:700; background:#f9fbf9;">28</td><td><input type="text" value="4,1250" data-spi="SPI4" data-day="12" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 12)">%</td>
+        <td>0,0378</td>
+        <td>4,12</td>
+        <td style="font-weight:700; background:#f9fbf9;">30</td><td><input type="text" value="4,1250" data-spi="SPI5" data-day="12" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 12)">%</td>
+        <td>0,0378</td>
+        <td>2,68</td>
+        <td style="font-weight:700; background:#f9fbf9;">20</td><td><input type="text" value="4,1250" data-spi="SPI6" data-day="12" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 12)">%</td>
+        <td>0,0378</td>
+        <td>4,95</td>
+        <td style="font-weight:700; background:#f9fbf9;">36</td><td><input type="text" value="4,1250" data-spi="Sensia" data-day="12" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 12)">%</td>
+        <td>0,0378</td>
+        <td>1,06</td>
+        <td style="font-weight:700; background:#f9fbf9;">8</td></tr><tr>
+      <td>13/08/2026</td>
+      <td>qui</td>
+      <td>2</td><td><input type="text" value="3,7500" data-spi="SPI1" data-day="13" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 13)">%</td>
+        <td>0,0344</td>
+        <td>5,53</td>
+        <td style="font-weight:700; background:#f9fbf9;">50</td><td><input type="text" value="3,7500" data-spi="SPI2" data-day="13" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 13)">%</td>
+        <td>0,0344</td>
+        <td>3,75</td>
+        <td style="font-weight:700; background:#f9fbf9;">34</td><td><input type="text" value="3,7500" data-spi="SPI3" data-day="13" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 13)">%</td>
+        <td>0,0344</td>
+        <td>3,47</td>
+        <td style="font-weight:700; background:#f9fbf9;">31</td><td><input type="text" value="3,7500" data-spi="SPI4" data-day="13" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 13)">%</td>
+        <td>0,0344</td>
+        <td>3,75</td>
+        <td style="font-weight:700; background:#f9fbf9;">34</td><td><input type="text" value="3,7500" data-spi="SPI5" data-day="13" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 13)">%</td>
+        <td>0,0344</td>
+        <td>2,44</td>
+        <td style="font-weight:700; background:#f9fbf9;">22</td><td><input type="text" value="3,7500" data-spi="SPI6" data-day="13" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 13)">%</td>
+        <td>0,0344</td>
+        <td>4,50</td>
+        <td style="font-weight:700; background:#f9fbf9;">41</td><td><input type="text" value="3,7500" data-spi="Sensia" data-day="13" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 13)">%</td>
+        <td>0,0344</td>
+        <td>0,96</td>
+        <td style="font-weight:700; background:#f9fbf9;">9</td></tr><tr>
+      <td>14/08/2026</td>
+      <td>sex</td>
+      <td>2</td><td><input type="text" value="4,2500" data-spi="SPI1" data-day="14" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 14)">%</td>
+        <td>0,0390</td>
+        <td>6,27</td>
+        <td style="font-weight:700; background:#f9fbf9;">56</td><td><input type="text" value="4,2500" data-spi="SPI2" data-day="14" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 14)">%</td>
+        <td>0,0390</td>
+        <td>4,25</td>
+        <td style="font-weight:700; background:#f9fbf9;">38</td><td><input type="text" value="4,2500" data-spi="SPI3" data-day="14" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 14)">%</td>
+        <td>0,0390</td>
+        <td>3,93</td>
+        <td style="font-weight:700; background:#f9fbf9;">35</td><td><input type="text" value="4,2500" data-spi="SPI4" data-day="14" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 14)">%</td>
+        <td>0,0390</td>
+        <td>4,25</td>
+        <td style="font-weight:700; background:#f9fbf9;">38</td><td><input type="text" value="4,2500" data-spi="SPI5" data-day="14" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 14)">%</td>
+        <td>0,0390</td>
+        <td>2,77</td>
+        <td style="font-weight:700; background:#f9fbf9;">25</td><td><input type="text" value="4,2500" data-spi="SPI6" data-day="14" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 14)">%</td>
+        <td>0,0390</td>
+        <td>5,10</td>
+        <td style="font-weight:700; background:#f9fbf9;">46</td><td><input type="text" value="4,2500" data-spi="Sensia" data-day="14" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 14)">%</td>
+        <td>0,0390</td>
+        <td>1,09</td>
+        <td style="font-weight:700; background:#f9fbf9;">10</td></tr><tr>
+      <td>15/08/2026</td>
+      <td>sáb</td>
+      <td>2</td><td><input type="text" value="4,3750" data-spi="SPI1" data-day="15" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 15)">%</td>
+        <td>0,0401</td>
+        <td>6,46</td>
+        <td style="font-weight:700; background:#f9fbf9;">63</td><td><input type="text" value="4,3750" data-spi="SPI2" data-day="15" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 15)">%</td>
+        <td>0,0401</td>
+        <td>4,37</td>
+        <td style="font-weight:700; background:#f9fbf9;">43</td><td><input type="text" value="4,3750" data-spi="SPI3" data-day="15" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 15)">%</td>
+        <td>0,0401</td>
+        <td>4,05</td>
+        <td style="font-weight:700; background:#f9fbf9;">39</td><td><input type="text" value="4,3750" data-spi="SPI4" data-day="15" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 15)">%</td>
+        <td>0,0401</td>
+        <td>4,37</td>
+        <td style="font-weight:700; background:#f9fbf9;">43</td><td><input type="text" value="4,3750" data-spi="SPI5" data-day="15" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 15)">%</td>
+        <td>0,0401</td>
+        <td>2,85</td>
+        <td style="font-weight:700; background:#f9fbf9;">28</td><td><input type="text" value="4,3750" data-spi="SPI6" data-day="15" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 15)">%</td>
+        <td>0,0401</td>
+        <td>5,25</td>
+        <td style="font-weight:700; background:#f9fbf9;">51</td><td><input type="text" value="4,3750" data-spi="Sensia" data-day="15" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 15)">%</td>
+        <td>0,0401</td>
+        <td>1,12</td>
+        <td style="font-weight:700; background:#f9fbf9;">11</td></tr><tr>
+      <td>16/08/2026</td>
+      <td>dom</td>
+      <td>3</td><td><input type="text" value="1,0000" data-spi="SPI1" data-day="16" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 16)">%</td>
+        <td>0,0092</td>
+        <td>1,48</td>
+        <td style="font-weight:700; background:#f9fbf9;">64</td><td><input type="text" value="1,0000" data-spi="SPI2" data-day="16" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 16)">%</td>
+        <td>0,0092</td>
+        <td>1,00</td>
+        <td style="font-weight:700; background:#f9fbf9;">44</td><td><input type="text" value="1,0000" data-spi="SPI3" data-day="16" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 16)">%</td>
+        <td>0,0092</td>
+        <td>0,93</td>
+        <td style="font-weight:700; background:#f9fbf9;">40</td><td><input type="text" value="1,0000" data-spi="SPI4" data-day="16" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 16)">%</td>
+        <td>0,0092</td>
+        <td>1,00</td>
+        <td style="font-weight:700; background:#f9fbf9;">44</td><td><input type="text" value="1,0000" data-spi="SPI5" data-day="16" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 16)">%</td>
+        <td>0,0092</td>
+        <td>0,65</td>
+        <td style="font-weight:700; background:#f9fbf9;">28</td><td><input type="text" value="1,0000" data-spi="SPI6" data-day="16" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 16)">%</td>
+        <td>0,0092</td>
+        <td>1,20</td>
+        <td style="font-weight:700; background:#f9fbf9;">52</td><td><input type="text" value="1,0000" data-spi="Sensia" data-day="16" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 16)">%</td>
+        <td>0,0092</td>
+        <td>0,26</td>
+        <td style="font-weight:700; background:#f9fbf9;">11</td></tr><tr>
+      <td>17/08/2026</td>
+      <td>seg</td>
+      <td>3</td><td><input type="text" value="3,6250" data-spi="SPI1" data-day="17" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 17)">%</td>
+        <td>0,0332</td>
+        <td>5,35</td>
+        <td style="font-weight:700; background:#f9fbf9;">70</td><td><input type="text" value="3,6250" data-spi="SPI2" data-day="17" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 17)">%</td>
+        <td>0,0332</td>
+        <td>3,62</td>
+        <td style="font-weight:700; background:#f9fbf9;">47</td><td><input type="text" value="3,6250" data-spi="SPI3" data-day="17" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 17)">%</td>
+        <td>0,0332</td>
+        <td>3,36</td>
+        <td style="font-weight:700; background:#f9fbf9;">44</td><td><input type="text" value="3,6250" data-spi="SPI4" data-day="17" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 17)">%</td>
+        <td>0,0332</td>
+        <td>3,62</td>
+        <td style="font-weight:700; background:#f9fbf9;">47</td><td><input type="text" value="3,6250" data-spi="SPI5" data-day="17" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 17)">%</td>
+        <td>0,0332</td>
+        <td>2,36</td>
+        <td style="font-weight:700; background:#f9fbf9;">31</td><td><input type="text" value="3,6250" data-spi="SPI6" data-day="17" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 17)">%</td>
+        <td>0,0332</td>
+        <td>4,35</td>
+        <td style="font-weight:700; background:#f9fbf9;">57</td><td><input type="text" value="3,6250" data-spi="Sensia" data-day="17" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 17)">%</td>
+        <td>0,0332</td>
+        <td>0,93</td>
+        <td style="font-weight:700; background:#f9fbf9;">12</td></tr><tr>
+      <td>18/08/2026</td>
+      <td>ter</td>
+      <td>3</td><td><input type="text" value="3,8750" data-spi="SPI1" data-day="18" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 18)">%</td>
+        <td>0,0355</td>
+        <td>5,72</td>
+        <td style="font-weight:700; background:#f9fbf9;">75</td><td><input type="text" value="3,8750" data-spi="SPI2" data-day="18" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 18)">%</td>
+        <td>0,0355</td>
+        <td>3,87</td>
+        <td style="font-weight:700; background:#f9fbf9;">51</td><td><input type="text" value="3,8750" data-spi="SPI3" data-day="18" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 18)">%</td>
+        <td>0,0355</td>
+        <td>3,59</td>
+        <td style="font-weight:700; background:#f9fbf9;">47</td><td><input type="text" value="3,8750" data-spi="SPI4" data-day="18" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 18)">%</td>
+        <td>0,0355</td>
+        <td>3,87</td>
+        <td style="font-weight:700; background:#f9fbf9;">51</td><td><input type="text" value="3,8750" data-spi="SPI5" data-day="18" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 18)">%</td>
+        <td>0,0355</td>
+        <td>2,52</td>
+        <td style="font-weight:700; background:#f9fbf9;">33</td><td><input type="text" value="3,8750" data-spi="SPI6" data-day="18" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 18)">%</td>
+        <td>0,0355</td>
+        <td>4,65</td>
+        <td style="font-weight:700; background:#f9fbf9;">61</td><td><input type="text" value="3,8750" data-spi="Sensia" data-day="18" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 18)">%</td>
+        <td>0,0355</td>
+        <td>0,99</td>
+        <td style="font-weight:700; background:#f9fbf9;">13</td></tr><tr>
+      <td>19/08/2026</td>
+      <td>qua</td>
+      <td>3</td><td><input type="text" value="4,1250" data-spi="SPI1" data-day="19" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 19)">%</td>
+        <td>0,0378</td>
+        <td>6,09</td>
+        <td style="font-weight:700; background:#f9fbf9;">82</td><td><input type="text" value="4,1250" data-spi="SPI2" data-day="19" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 19)">%</td>
+        <td>0,0378</td>
+        <td>4,12</td>
+        <td style="font-weight:700; background:#f9fbf9;">55</td><td><input type="text" value="4,1250" data-spi="SPI3" data-day="19" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 19)">%</td>
+        <td>0,0378</td>
+        <td>3,82</td>
+        <td style="font-weight:700; background:#f9fbf9;">51</td><td><input type="text" value="4,1250" data-spi="SPI4" data-day="19" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 19)">%</td>
+        <td>0,0378</td>
+        <td>4,12</td>
+        <td style="font-weight:700; background:#f9fbf9;">55</td><td><input type="text" value="4,1250" data-spi="SPI5" data-day="19" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 19)">%</td>
+        <td>0,0378</td>
+        <td>2,68</td>
+        <td style="font-weight:700; background:#f9fbf9;">36</td><td><input type="text" value="4,1250" data-spi="SPI6" data-day="19" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 19)">%</td>
+        <td>0,0378</td>
+        <td>4,95</td>
+        <td style="font-weight:700; background:#f9fbf9;">66</td><td><input type="text" value="4,1250" data-spi="Sensia" data-day="19" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 19)">%</td>
+        <td>0,0378</td>
+        <td>1,06</td>
+        <td style="font-weight:700; background:#f9fbf9;">14</td></tr><tr>
+      <td>20/08/2026</td>
+      <td>qui</td>
+      <td>3</td><td><input type="text" value="3,7500" data-spi="SPI1" data-day="20" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 20)">%</td>
+        <td>0,0344</td>
+        <td>5,53</td>
+        <td style="font-weight:700; background:#f9fbf9;">87</td><td><input type="text" value="3,7500" data-spi="SPI2" data-day="20" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 20)">%</td>
+        <td>0,0344</td>
+        <td>3,75</td>
+        <td style="font-weight:700; background:#f9fbf9;">59</td><td><input type="text" value="3,7500" data-spi="SPI3" data-day="20" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 20)">%</td>
+        <td>0,0344</td>
+        <td>3,47</td>
+        <td style="font-weight:700; background:#f9fbf9;">55</td><td><input type="text" value="3,7500" data-spi="SPI4" data-day="20" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 20)">%</td>
+        <td>0,0344</td>
+        <td>3,75</td>
+        <td style="font-weight:700; background:#f9fbf9;">59</td><td><input type="text" value="3,7500" data-spi="SPI5" data-day="20" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 20)">%</td>
+        <td>0,0344</td>
+        <td>2,44</td>
+        <td style="font-weight:700; background:#f9fbf9;">38</td><td><input type="text" value="3,7500" data-spi="SPI6" data-day="20" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 20)">%</td>
+        <td>0,0344</td>
+        <td>4,50</td>
+        <td style="font-weight:700; background:#f9fbf9;">71</td><td><input type="text" value="3,7500" data-spi="Sensia" data-day="20" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 20)">%</td>
+        <td>0,0344</td>
+        <td>0,96</td>
+        <td style="font-weight:700; background:#f9fbf9;">15</td></tr><tr>
+      <td>21/08/2026</td>
+      <td>sex</td>
+      <td>3</td><td><input type="text" value="4,2500" data-spi="SPI1" data-day="21" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 21)">%</td>
+        <td>0,0390</td>
+        <td>6,27</td>
+        <td style="font-weight:700; background:#f9fbf9;">93</td><td><input type="text" value="4,2500" data-spi="SPI2" data-day="21" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 21)">%</td>
+        <td>0,0390</td>
+        <td>4,25</td>
+        <td style="font-weight:700; background:#f9fbf9;">63</td><td><input type="text" value="4,2500" data-spi="SPI3" data-day="21" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 21)">%</td>
+        <td>0,0390</td>
+        <td>3,93</td>
+        <td style="font-weight:700; background:#f9fbf9;">59</td><td><input type="text" value="4,2500" data-spi="SPI4" data-day="21" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 21)">%</td>
+        <td>0,0390</td>
+        <td>4,25</td>
+        <td style="font-weight:700; background:#f9fbf9;">63</td><td><input type="text" value="4,2500" data-spi="SPI5" data-day="21" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 21)">%</td>
+        <td>0,0390</td>
+        <td>2,77</td>
+        <td style="font-weight:700; background:#f9fbf9;">41</td><td><input type="text" value="4,2500" data-spi="SPI6" data-day="21" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 21)">%</td>
+        <td>0,0390</td>
+        <td>5,10</td>
+        <td style="font-weight:700; background:#f9fbf9;">76</td><td><input type="text" value="4,2500" data-spi="Sensia" data-day="21" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 21)">%</td>
+        <td>0,0390</td>
+        <td>1,09</td>
+        <td style="font-weight:700; background:#f9fbf9;">16</td></tr><tr>
+      <td>22/08/2026</td>
+      <td>sáb</td>
+      <td>3</td><td><input type="text" value="4,3750" data-spi="SPI1" data-day="22" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 22)">%</td>
+        <td>0,0401</td>
+        <td>6,46</td>
+        <td style="font-weight:700; background:#f9fbf9;">100</td><td><input type="text" value="4,3750" data-spi="SPI2" data-day="22" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 22)">%</td>
+        <td>0,0401</td>
+        <td>4,37</td>
+        <td style="font-weight:700; background:#f9fbf9;">68</td><td><input type="text" value="4,3750" data-spi="SPI3" data-day="22" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 22)">%</td>
+        <td>0,0401</td>
+        <td>4,05</td>
+        <td style="font-weight:700; background:#f9fbf9;">63</td><td><input type="text" value="4,3750" data-spi="SPI4" data-day="22" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 22)">%</td>
+        <td>0,0401</td>
+        <td>4,37</td>
+        <td style="font-weight:700; background:#f9fbf9;">68</td><td><input type="text" value="4,3750" data-spi="SPI5" data-day="22" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 22)">%</td>
+        <td>0,0401</td>
+        <td>2,85</td>
+        <td style="font-weight:700; background:#f9fbf9;">44</td><td><input type="text" value="4,3750" data-spi="SPI6" data-day="22" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 22)">%</td>
+        <td>0,0401</td>
+        <td>5,25</td>
+        <td style="font-weight:700; background:#f9fbf9;">81</td><td><input type="text" value="4,3750" data-spi="Sensia" data-day="22" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 22)">%</td>
+        <td>0,0401</td>
+        <td>1,12</td>
+        <td style="font-weight:700; background:#f9fbf9;">17</td></tr><tr>
+      <td>23/08/2026</td>
+      <td>dom</td>
+      <td>4</td><td><input type="text" value="1,4000" data-spi="SPI1" data-day="23" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 23)">%</td>
+        <td>0,0128</td>
+        <td>2,07</td>
+        <td style="font-weight:700; background:#f9fbf9;">102</td><td><input type="text" value="1,4000" data-spi="SPI2" data-day="23" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 23)">%</td>
+        <td>0,0128</td>
+        <td>1,40</td>
+        <td style="font-weight:700; background:#f9fbf9;">69</td><td><input type="text" value="1,4000" data-spi="SPI3" data-day="23" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 23)">%</td>
+        <td>0,0128</td>
+        <td>1,30</td>
+        <td style="font-weight:700; background:#f9fbf9;">64</td><td><input type="text" value="1,4000" data-spi="SPI4" data-day="23" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 23)">%</td>
+        <td>0,0128</td>
+        <td>1,40</td>
+        <td style="font-weight:700; background:#f9fbf9;">69</td><td><input type="text" value="1,4000" data-spi="SPI5" data-day="23" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 23)">%</td>
+        <td>0,0128</td>
+        <td>0,91</td>
+        <td style="font-weight:700; background:#f9fbf9;">45</td><td><input type="text" value="1,4000" data-spi="SPI6" data-day="23" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 23)">%</td>
+        <td>0,0128</td>
+        <td>1,68</td>
+        <td style="font-weight:700; background:#f9fbf9;">83</td><td><input type="text" value="1,4000" data-spi="Sensia" data-day="23" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 23)">%</td>
+        <td>0,0128</td>
+        <td>0,36</td>
+        <td style="font-weight:700; background:#f9fbf9;">18</td></tr><tr>
+      <td>24/08/2026</td>
+      <td>seg</td>
+      <td>4</td><td><input type="text" value="5,0750" data-spi="SPI1" data-day="24" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 24)">%</td>
+        <td>0,0465</td>
+        <td>7,49</td>
+        <td style="font-weight:700; background:#f9fbf9;">109</td><td><input type="text" value="5,0750" data-spi="SPI2" data-day="24" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 24)">%</td>
+        <td>0,0465</td>
+        <td>5,07</td>
+        <td style="font-weight:700; background:#f9fbf9;">74</td><td><input type="text" value="5,0750" data-spi="SPI3" data-day="24" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 24)">%</td>
+        <td>0,0465</td>
+        <td>4,70</td>
+        <td style="font-weight:700; background:#f9fbf9;">69</td><td><input type="text" value="5,0750" data-spi="SPI4" data-day="24" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 24)">%</td>
+        <td>0,0465</td>
+        <td>5,07</td>
+        <td style="font-weight:700; background:#f9fbf9;">74</td><td><input type="text" value="5,0750" data-spi="SPI5" data-day="24" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 24)">%</td>
+        <td>0,0465</td>
+        <td>3,30</td>
+        <td style="font-weight:700; background:#f9fbf9;">48</td><td><input type="text" value="5,0750" data-spi="SPI6" data-day="24" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 24)">%</td>
+        <td>0,0465</td>
+        <td>6,09</td>
+        <td style="font-weight:700; background:#f9fbf9;">89</td><td><input type="text" value="5,0750" data-spi="Sensia" data-day="24" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 24)">%</td>
+        <td>0,0465</td>
+        <td>1,30</td>
+        <td style="font-weight:700; background:#f9fbf9;">19</td></tr><tr>
+      <td>25/08/2026</td>
+      <td>ter</td>
+      <td>4</td><td><input type="text" value="5,4250" data-spi="SPI1" data-day="25" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 25)">%</td>
+        <td>0,0497</td>
+        <td>8,01</td>
+        <td style="font-weight:700; background:#f9fbf9;">117</td><td><input type="text" value="5,4250" data-spi="SPI2" data-day="25" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 25)">%</td>
+        <td>0,0497</td>
+        <td>5,42</td>
+        <td style="font-weight:700; background:#f9fbf9;">79</td><td><input type="text" value="5,4250" data-spi="SPI3" data-day="25" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 25)">%</td>
+        <td>0,0497</td>
+        <td>5,02</td>
+        <td style="font-weight:700; background:#f9fbf9;">74</td><td><input type="text" value="5,4250" data-spi="SPI4" data-day="25" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 25)">%</td>
+        <td>0,0497</td>
+        <td>5,42</td>
+        <td style="font-weight:700; background:#f9fbf9;">79</td><td><input type="text" value="5,4250" data-spi="SPI5" data-day="25" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 25)">%</td>
+        <td>0,0497</td>
+        <td>3,53</td>
+        <td style="font-weight:700; background:#f9fbf9;">52</td><td><input type="text" value="5,4250" data-spi="SPI6" data-day="25" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 25)">%</td>
+        <td>0,0497</td>
+        <td>6,51</td>
+        <td style="font-weight:700; background:#f9fbf9;">95</td><td><input type="text" value="5,4250" data-spi="Sensia" data-day="25" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 25)">%</td>
+        <td>0,0497</td>
+        <td>1,39</td>
+        <td style="font-weight:700; background:#f9fbf9;">20</td></tr><tr>
+      <td>26/08/2026</td>
+      <td>qua</td>
+      <td>4</td><td><input type="text" value="5,7750" data-spi="SPI1" data-day="26" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 26)">%</td>
+        <td>0,0529</td>
+        <td>8,52</td>
+        <td style="font-weight:700; background:#f9fbf9;">126</td><td><input type="text" value="5,7750" data-spi="SPI2" data-day="26" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 26)">%</td>
+        <td>0,0529</td>
+        <td>5,77</td>
+        <td style="font-weight:700; background:#f9fbf9;">85</td><td><input type="text" value="5,7750" data-spi="SPI3" data-day="26" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 26)">%</td>
+        <td>0,0529</td>
+        <td>5,35</td>
+        <td style="font-weight:700; background:#f9fbf9;">79</td><td><input type="text" value="5,7750" data-spi="SPI4" data-day="26" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 26)">%</td>
+        <td>0,0529</td>
+        <td>5,77</td>
+        <td style="font-weight:700; background:#f9fbf9;">85</td><td><input type="text" value="5,7750" data-spi="SPI5" data-day="26" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 26)">%</td>
+        <td>0,0529</td>
+        <td>3,76</td>
+        <td style="font-weight:700; background:#f9fbf9;">56</td><td><input type="text" value="5,7750" data-spi="SPI6" data-day="26" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 26)">%</td>
+        <td>0,0529</td>
+        <td>6,93</td>
+        <td style="font-weight:700; background:#f9fbf9;">102</td><td><input type="text" value="5,7750" data-spi="Sensia" data-day="26" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 26)">%</td>
+        <td>0,0529</td>
+        <td>1,48</td>
+        <td style="font-weight:700; background:#f9fbf9;">22</td></tr><tr>
+      <td>27/08/2026</td>
+      <td>qui</td>
+      <td>4</td><td><input type="text" value="5,2500" data-spi="SPI1" data-day="27" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 27)">%</td>
+        <td>0,0481</td>
+        <td>7,75</td>
+        <td style="font-weight:700; background:#f9fbf9;">134</td><td><input type="text" value="5,2500" data-spi="SPI2" data-day="27" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 27)">%</td>
+        <td>0,0481</td>
+        <td>5,25</td>
+        <td style="font-weight:700; background:#f9fbf9;">90</td><td><input type="text" value="5,2500" data-spi="SPI3" data-day="27" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 27)">%</td>
+        <td>0,0481</td>
+        <td>4,86</td>
+        <td style="font-weight:700; background:#f9fbf9;">84</td><td><input type="text" value="5,2500" data-spi="SPI4" data-day="27" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 27)">%</td>
+        <td>0,0481</td>
+        <td>5,25</td>
+        <td style="font-weight:700; background:#f9fbf9;">90</td><td><input type="text" value="5,2500" data-spi="SPI5" data-day="27" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 27)">%</td>
+        <td>0,0481</td>
+        <td>3,42</td>
+        <td style="font-weight:700; background:#f9fbf9;">59</td><td><input type="text" value="5,2500" data-spi="SPI6" data-day="27" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 27)">%</td>
+        <td>0,0481</td>
+        <td>6,30</td>
+        <td style="font-weight:700; background:#f9fbf9;">109</td><td><input type="text" value="5,2500" data-spi="Sensia" data-day="27" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 27)">%</td>
+        <td>0,0481</td>
+        <td>1,35</td>
+        <td style="font-weight:700; background:#f9fbf9;">23</td></tr><tr>
+      <td>28/08/2026</td>
+      <td>sex</td>
+      <td>4</td><td><input type="text" value="5,9500" data-spi="SPI1" data-day="28" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 28)">%</td>
+        <td>0,0545</td>
+        <td>8,78</td>
+        <td style="font-weight:700; background:#f9fbf9;">142</td><td><input type="text" value="5,9500" data-spi="SPI2" data-day="28" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 28)">%</td>
+        <td>0,0545</td>
+        <td>5,94</td>
+        <td style="font-weight:700; background:#f9fbf9;">96</td><td><input type="text" value="5,9500" data-spi="SPI3" data-day="28" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 28)">%</td>
+        <td>0,0545</td>
+        <td>5,51</td>
+        <td style="font-weight:700; background:#f9fbf9;">89</td><td><input type="text" value="5,9500" data-spi="SPI4" data-day="28" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 28)">%</td>
+        <td>0,0545</td>
+        <td>5,94</td>
+        <td style="font-weight:700; background:#f9fbf9;">96</td><td><input type="text" value="5,9500" data-spi="SPI5" data-day="28" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 28)">%</td>
+        <td>0,0545</td>
+        <td>3,87</td>
+        <td style="font-weight:700; background:#f9fbf9;">63</td><td><input type="text" value="5,9500" data-spi="SPI6" data-day="28" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 28)">%</td>
+        <td>0,0545</td>
+        <td>7,14</td>
+        <td style="font-weight:700; background:#f9fbf9;">116</td><td><input type="text" value="5,9500" data-spi="Sensia" data-day="28" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 28)">%</td>
+        <td>0,0545</td>
+        <td>1,53</td>
+        <td style="font-weight:700; background:#f9fbf9;">25</td></tr><tr>
+      <td>29/08/2026</td>
+      <td>sáb</td>
+      <td>4</td><td><input type="text" value="6,1250" data-spi="SPI1" data-day="29" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 29)">%</td>
+        <td>0,0561</td>
+        <td>9,04</td>
+        <td style="font-weight:700; background:#f9fbf9;">151</td><td><input type="text" value="6,1250" data-spi="SPI2" data-day="29" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 29)">%</td>
+        <td>0,0561</td>
+        <td>6,12</td>
+        <td style="font-weight:700; background:#f9fbf9;">103</td><td><input type="text" value="6,1250" data-spi="SPI3" data-day="29" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 29)">%</td>
+        <td>0,0561</td>
+        <td>5,67</td>
+        <td style="font-weight:700; background:#f9fbf9;">95</td><td><input type="text" value="6,1250" data-spi="SPI4" data-day="29" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 29)">%</td>
+        <td>0,0561</td>
+        <td>6,12</td>
+        <td style="font-weight:700; background:#f9fbf9;">103</td><td><input type="text" value="6,1250" data-spi="SPI5" data-day="29" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 29)">%</td>
+        <td>0,0561</td>
+        <td>3,99</td>
+        <td style="font-weight:700; background:#f9fbf9;">67</td><td><input type="text" value="6,1250" data-spi="SPI6" data-day="29" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 29)">%</td>
+        <td>0,0561</td>
+        <td>7,35</td>
+        <td style="font-weight:700; background:#f9fbf9;">123</td><td><input type="text" value="6,1250" data-spi="Sensia" data-day="29" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 29)">%</td>
+        <td>0,0561</td>
+        <td>1,57</td>
+        <td style="font-weight:700; background:#f9fbf9;">26</td></tr><tr>
+      <td>30/08/2026</td>
+      <td>dom</td>
+      <td>4</td><td><input type="text" value="1,4000" data-spi="SPI1" data-day="30" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 30)">%</td>
+        <td>0,0128</td>
+        <td>2,07</td>
+        <td style="font-weight:700; background:#f9fbf9;">154</td><td><input type="text" value="1,4000" data-spi="SPI2" data-day="30" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 30)">%</td>
+        <td>0,0128</td>
+        <td>1,40</td>
+        <td style="font-weight:700; background:#f9fbf9;">104</td><td><input type="text" value="1,4000" data-spi="SPI3" data-day="30" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 30)">%</td>
+        <td>0,0128</td>
+        <td>1,30</td>
+        <td style="font-weight:700; background:#f9fbf9;">96</td><td><input type="text" value="1,4000" data-spi="SPI4" data-day="30" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 30)">%</td>
+        <td>0,0128</td>
+        <td>1,40</td>
+        <td style="font-weight:700; background:#f9fbf9;">104</td><td><input type="text" value="1,4000" data-spi="SPI5" data-day="30" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 30)">%</td>
+        <td>0,0128</td>
+        <td>0,91</td>
+        <td style="font-weight:700; background:#f9fbf9;">68</td><td><input type="text" value="1,4000" data-spi="SPI6" data-day="30" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 30)">%</td>
+        <td>0,0128</td>
+        <td>1,68</td>
+        <td style="font-weight:700; background:#f9fbf9;">125</td><td><input type="text" value="1,4000" data-spi="Sensia" data-day="30" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 30)">%</td>
+        <td>0,0128</td>
+        <td>0,36</td>
+        <td style="font-weight:700; background:#f9fbf9;">27</td></tr><tr>
+      <td>31/08/2026</td>
+      <td>seg</td>
+      <td>4</td><td><input type="text" value="5,0750" data-spi="SPI1" data-day="31" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI1', 31)">%</td>
+        <td>0,0465</td>
+        <td>7,49</td>
+        <td style="font-weight:700; background:#f9fbf9;">161</td><td><input type="text" value="5,0750" data-spi="SPI2" data-day="31" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI2', 31)">%</td>
+        <td>0,0465</td>
+        <td>5,07</td>
+        <td style="font-weight:700; background:#f9fbf9;">109</td><td><input type="text" value="5,0750" data-spi="SPI3" data-day="31" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI3', 31)">%</td>
+        <td>0,0465</td>
+        <td>4,70</td>
+        <td style="font-weight:700; background:#f9fbf9;">101</td><td><input type="text" value="5,0750" data-spi="SPI4" data-day="31" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI4', 31)">%</td>
+        <td>0,0465</td>
+        <td>5,07</td>
+        <td style="font-weight:700; background:#f9fbf9;">109</td><td><input type="text" value="5,0750" data-spi="SPI5" data-day="31" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI5', 31)">%</td>
+        <td>0,0465</td>
+        <td>3,30</td>
+        <td style="font-weight:700; background:#f9fbf9;">71</td><td><input type="text" value="5,0750" data-spi="SPI6" data-day="31" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'SPI6', 31)">%</td>
+        <td>0,0465</td>
+        <td>6,09</td>
+        <td style="font-weight:700; background:#f9fbf9;">131</td><td><input type="text" value="5,0750" data-spi="Sensia" data-day="31" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, 'Sensia', 31)">%</td>
+        <td>0,0465</td>
+        <td>1,30</td>
+        <td style="font-weight:700; background:#f9fbf9;">28</td></tr><tr class="total-row"><td colspan="3">Total do mês</td><td>109,10%</td><td>1,0000</td><td>161,00</td><td>161</td><td>109,10%</td><td>1,0000</td><td>109,00</td><td>109</td><td>109,10%</td><td>1,0000</td><td>101,00</td><td>101</td><td>109,10%</td><td>1,0000</td><td>109,00</td><td>109</td><td>109,10%</td><td>1,0000</td><td>71,00</td><td>71</td><td>109,10%</td><td>1,0000</td><td>131,00</td><td>131</td><td>109,10%</td><td>1,0000</td><td>28,00</td><td>28</td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- ABA 3: HISTORICO ---- -->
+  <div id="tabHistContent" style="display:none;">
+    <div class="card">
+      <h3 style="margin:0 0 6px;font-size:12px;color:var(--green-dark);">Histórico de fechamentos mensais</h3>
+      <p style="font-size:10px;color:var(--muted);margin:0 0 8px;">Dados carregados de <code>historico/fechamentos.json</code> no GitHub. Cada mês fechado vira uma linha nova nesse arquivo — leve, sem precisar guardar o XML inteiro de cada mês.</p>
+      <div style="margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <button class="btn" type="button" onclick="fecharMesAtual()">📌 Fechar mês atual (usa o XML carregado)</button>
+        <span style="font-size:10px;color:var(--muted);">Pega o total já calculado por SPI e as metas da aba Simulação, e baixa o fechamentos.json atualizado.</span>
+      </div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:11px;font-weight:600;margin-right:4px;">Selecionar mês:</label>
+        <select id="histMonthSelect" onchange="renderHistorico()"></select>
+      </div>
+      <div id="histEmptyMsg" style="display:none;font-size:11px;color:var(--muted);">Nenhum histórico encontrado ainda. Assim que você fechar o primeiro mês em <code>historico/fechamentos.json</code>, ele aparece aqui.</div>
+      <div class="pdv-scroll-wrap">
+        <table class="matrix" id="histTable"></table>
+      </div>
+      <div id="histForecast" style="font-size:11px;color:var(--ink);margin-top:8px;font-weight:600;"></div>
+    </div>
+
+    <div class="card" style="margin-top:8px;">
+      <h3 style="margin:0 0 4px;font-size:12px;color:var(--green-dark);">✍️ Preencher mês retroativo (sem XML)</h3>
+      <p style="font-size:10px;color:var(--muted);margin:0 0 8px;">Use isto para digitar meses passados que você já fechou em outro sistema (ex: até jan/26), sem precisar do XML daquele mês. Preencha os números e baixe o <code>fechamentos.json</code> atualizado — ele já vem com os meses que já estavam no histórico, então é só substituir o arquivo antigo no GitHub por esse.</p>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:11px;font-weight:600;margin-right:4px;">Mês (AAAA-MM):</label>
+        <input type="month" id="manualHistMonth" style="padding:4px 6px;border:1.5px solid var(--line);border-radius:6px;font-size:11px;">
+      </div>
+      <div class="pdv-scroll-wrap">
+        <table class="matrix team-table" id="manualHistTable">
+          <tr><th>SPI</th><th>Meta</th><th>Realizado</th></tr>
+          <!-- linhas geradas via JS (uma por SPI) -->
+        </table>
+      </div>
+      <button class="btn" type="button" style="margin-top:8px;" onclick="salvarMesManual()">💾 Salvar este mês e baixar fechamentos.json</button>
+    </div>
+
+    <div class="card" id="closestMonthCard" style="margin-top:8px;">
+      <h3 style="margin:0 0 4px;font-size:12px;color:var(--green-dark);">📈 Mês do histórico mais parecido com o atual</h3>
+      <p style="font-size:10px;color:var(--muted);margin:0 0 8px;">Compara a distribuição de gerados por SPI do mês em andamento com a de cada mês fechado — quanto mais parecida a "forma" da distribuição, maior a chance de o fechamento seguir um padrão semelhante. Serve como referência para a previsão, não como garantia.</p>
+      <div id="closestMonthBody" style="font-size:11px;">Carregue o XML do mês atual e tenha ao menos 1 mês no histórico para ver a comparação.</div>
+    </div>
+  </div>
+
+  <!-- ---- ABA 4: GERENTES & SUPERVISORES ---- -->
+  <div id="tabTeamContent" style="display:none;">
+    <div class="card" style="margin-bottom:10px;">
+      <h3 style="margin:0 0 4px;font-size:12px;color:var(--green-dark);">👥 Vendas por semana — Gerentes e Supervisores</h3>
+      <p style="font-size:10px;color:var(--muted);margin:0 0 10px;">
+        Cada venda é cruzada pela <b>LOJA</b> com a relação de CLTs para cair na regional e no gerente certos.
+        AGS e Ger. House: coluna "Superior Direto do Corretor", separadas pelo canal (AGS / House) &nbsp;•&nbsp;
+        Ger. Imob: mesma coluna, canal Imob &nbsp;•&nbsp;
+        Supervisor Imob: coluna "Corretor", canal Imob.
+        "Fora" reúne o que não bateu com nenhum gerente/loja cadastrado. Semanas seguem a mesma divisão do Painel Executivo.
+      </p>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <label style="font-size:11px;font-weight:700;color:var(--green-dark);">📅 Semana:</label>
+        <select id="teamWeekSelect" onchange="renderTeamTab()" style="padding:4px 8px;border:1.5px solid var(--line);border-radius:6px;font-size:11px;font-weight:600;color:var(--ink);"></select>
+        <span id="teamWeekRange" style="font-size:10px;color:var(--muted);"></span>
+        <button class="btn secondary" id="teamPrintBtn" type="button" onclick="window.print()" style="margin-left:auto;">🖨 Imprimir esta aba</button>
+      </div>
+    </div>
+
+    <div id="teamEmptyMsg" class="card empty-state" style="display:none;">
+      <h2>Nenhum dado carregado ainda</h2>
+      <p>Carregue o XML do mês para ver os números por gerente/supervisor.</p>
+    </div>
+
+    <div id="teamSectionsWrap" class="team-grid">
+      <div class="card team-section" style="border-left:4px solid #f97316;">
+        <h4 style="margin:0 0 8px;font-size:12px;color:#c2410c;display:flex;align-items:center;gap:6px;">🎯 AGS <span id="teamAgsCount" class="team-count-badge"></span></h4>
+        <div class="team-scroll-wrap"><table class="matrix team-table" id="teamAgsTable"></table></div>
+      </div>
+
+      <div class="card team-section" style="border-left:4px solid var(--green);">
+        <h4 style="margin:0 0 8px;font-size:12px;color:var(--green-dark);display:flex;align-items:center;gap:6px;">🏠 Ger. House <span id="teamGerentesCount" class="team-count-badge"></span></h4>
+        <div class="team-scroll-wrap"><table class="matrix team-table" id="teamGerentesTable"></table></div>
+      </div>
+
+      <div class="card team-section" style="border-left:4px solid #3b82f6;">
+        <h4 style="margin:0 0 8px;font-size:12px;color:#2554a8;display:flex;align-items:center;gap:6px;">🏢 Ger. Imob <span id="teamGerentesImobCount" class="team-count-badge"></span></h4>
+        <div class="team-scroll-wrap"><table class="matrix team-table" id="teamGerentesImobTable"></table></div>
+      </div>
+
+      <div class="card team-section" style="border-left:4px solid #a855f7;">
+        <h4 style="margin:0 0 8px;font-size:12px;color:#7e22ce;display:flex;align-items:center;gap:6px;">🤝 Supervisor Imob <span id="teamSupervisoresCount" class="team-count-badge"></span></h4>
+        <div class="team-scroll-wrap"><table class="matrix team-table" id="teamSupervisoresTable"></table></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ---- Settings Modal ---- -->
+<div class="modal-overlay" id="modalOverlay" style="display: none;">
+  <div class="modal">
+    <div class="modal-topbar">
+      <div>
+        <h2>Configurações</h2>
+        <div class="sub">Faça o mapeamento dos empreendimentos para as respectivas SPIs.</div>
+      </div>
+      <div class="modal-topbar-actions">
+        <button class="btn secondary" id="modalCancel" type="button">Fechar</button>
+        <button class="btn" id="modalSave" type="button">Salvar</button>
+        <button class="modal-close" id="modalClose" type="button">×</button>
+      </div>
+    </div>
+
+    <h4>Mapeamento Empreendimento → SPI</h4>
+    <div id="mapList"></div>
+    <div class="empty-map" id="mapEmptyMsg" style="display: block;">Carregue um XML para listar os empreendimentos encontrados.</div>
+  </div>
+</div>
+
+<script type="application/json" id="embeddedState">{"allMetasByMonth":{},"allPdvPctsByMonth":{},"mappingOverrides":{"PARQUE BELLAGIO":"SPI4","PARQUE RIO CORAIS":"SPI5"}}</script>
+<script type="text/xml" id="embeddedData"></script>
+
+<script>
+const SPI_GROUPS = ['SPI 1','SPI 2','SPI 3','SPI 4','SPI 5','SPI 6','SPI Sensia'];
+const SPI_KEYS = ['SPI1','SPI2','SPI3','SPI4','SPI5','SPI6','Sensia'];
+
+// Relação de CLTs (LOJA -> regional/gerente oficiais), carregada via fetch de
+// relacao-gerentes-lojas.json (ver loadRelacaoGerentes). Gerada a partir do
+// Relação_CLTs.xlsx (colunas REGIONAL / LOJA / GERENTE).
+let LOJA_GERENTE_MAP = {};
+
+let DEFAULT_MAPPING = {}; // carregado via fetch de mapeamento-regionais.json (ver loadMapping)
+
+let metas = {};
+let mappingOverrides = {}; 
+let currentRecords = []; 
+let currentEmpreendimentos = [];
+let lastUploadMeta = null; 
+let pdvPcts = {}; 
+let selectedSpiFilter = null;
+let selectedStatusFilter = null;
+let selectedChannelFilter = null;
+let currentXmlText = ''; 
+let lastMonthStats = null; // { year, month(0-indexed), perSpiTotal, metas } — preenchido a cada render(), usado para "Fechar mês"
+
+let allMetasByMonth = {};
+let allPdvPctsByMonth = {};
+let historicoFechamentos = {};
+
+const WEEKDAY_WEIGHTS = {0:0.145, 1:0.155, 2:0.165, 3:0.150, 4:0.170, 5:0.175, 6:0.040};
+const QUARTER_WEIGHTS = {1:0.15, 2:0.25, 3:0.25, 4:0.35};
+
+function resolveSpi(empreendimento){
+  const norm = (empreendimento||'').trim().toUpperCase();
+  if(norm in mappingOverrides) return mappingOverrides[norm];
+  if(norm in DEFAULT_MAPPING) return DEFAULT_MAPPING[norm];
+  return '';
+}
+
+// Determina o mês/ano "de referência" pela MAIORIA das datas de GERACAO,
+// em vez de simplesmente pegar a data máxima. Isso evita que 1 ou 2 UH geradas
+// já no mês seguinte (ex: 01/09) façam o painel pular inteiro pro mês novo
+// quando o grosso do XML ainda é do mês anterior (ex: agosto).
+function getMajorityYearMonth(records){
+  const dates = (records||[]).map(r=>parseDateBR(r.geracao)).filter(Boolean);
+  if(dates.length === 0){
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() };
+  }
+  const counts = {};
+  dates.forEach(d=>{
+    const key = d.getFullYear() + '_' + d.getMonth();
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  let bestKey = null, bestCount = -1;
+  Object.keys(counts).forEach(k=>{
+    if(counts[k] > bestCount){ bestCount = counts[k]; bestKey = k; }
+  });
+  const parts = bestKey.split('_');
+  return { year: parseInt(parts[0]), month: parseInt(parts[1]) };
+}
+
+// Qualquer GERACAO posterior ao mês de referência (maioria) é tratada como se
+// tivesse ocorrido no último dia daquele mês de referência — sinal de que o
+// mês já fechou e o XML só tem algumas UH "vazando" pro mês seguinte.
+function getEffectiveGeracaoDate(d, year, month){
+  if(!d) return d;
+  if(d.getFullYear() > year || (d.getFullYear() === year && d.getMonth() > month)){
+    return new Date(year, month, daysInMonth(year, month));
+  }
+  return d;
+}
+
+function getSimYearMonth(){
+  if(currentRecords.length > 0){
+    return getMajorityYearMonth(currentRecords);
+  }
+  const now = new Date();
+  return { year: now.getFullYear(), month: now.getMonth() };
+}
+
+function loadMonthSettings(){
+  const { year, month } = getSimYearMonth();
+  const mKey = `${year}_${month}`;
+  
+  try{
+    allMetasByMonth = JSON.parse(localStorage.getItem('spi-metas-map') || '{}');
+  }catch(e){ allMetasByMonth = {}; }
+
+  try{
+    allPdvPctsByMonth = JSON.parse(localStorage.getItem('spi-pdv-pcts-map') || '{}');
+  }catch(e){ allPdvPctsByMonth = {}; }
+
+  metas = allMetasByMonth[mKey] || {SPI1:161,SPI2:109,SPI3:101,SPI4:109,SPI5:71,SPI6:131,Sensia:28};
+  pdvPcts = allPdvPctsByMonth[mKey] || {};
+}
+
+async function loadSettings(){
+  try{
+    const r2 = localStorage.getItem('spi-mapping-overrides');
+    mappingOverrides = r2 ? JSON.parse(r2) : {};
+  }catch(e){ mappingOverrides = {}; }
+  loadMonthSettings();
+}
+
+// Carrega as metas e normas do GitHub se o arquivo planejamento.json existir
+async function loadPlanejamento(){
+  try{
+    const response = await fetch('planejamento.json?t=' + new Date().getTime());
+    if(response.ok){
+      const data = await response.json();
+      if(data.metas) allMetasByMonth = {...allMetasByMonth, ...data.metas};
+      if(data.pcts) allPdvPctsByMonth = {...allPdvPctsByMonth, ...data.pcts};
+      localStorage.setItem('spi-metas-map', JSON.stringify(allMetasByMonth));
+      localStorage.setItem('spi-pdv-pcts-map', JSON.stringify(allPdvPctsByMonth));
+      loadMonthSettings();
+    }
+  }catch(e){/* se não houver arquivo remoto, mantém o local */}
+}
+
+// Gera e baixa o arquivo consolidado com todas as alterações de metas e normas
+function baixarPlanejamento(){
+  const payload = {
+    metas: allMetasByMonth,
+    pcts: allPdvPctsByMonth
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'planejamento.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  alert('Arquivo planejamento.json baixado! Suba ele para a raiz do seu repositório no GitHub para atualizar as metas e normas de todo mundo.');
+}
+
+// Carrega o de-para Empreendimento -> SPI a partir do GitHub (gerado da planilha Regionais.xlsx).
+async function loadMapping(){
+  try{
+    const response = await fetch('mapeamento-regionais.json?t=' + new Date().getTime());
+    if(response.ok){
+      const data = await response.json();
+      DEFAULT_MAPPING = data;
+    }
+  }catch(e){ /* mantem o mapeamento atual em caso de falha de rede */ }
+}
+
+// Carrega a relação de CLTs (LOJA -> regional/gerente oficiais), gerada a partir
+// do Relação_CLTs.xlsx. Usada na aba "Gerentes & Supervisores" para cruzar cada
+// venda pela LOJA e confirmar que ela pertence mesmo ao gerente dela.
+async function loadRelacaoGerentes(){
+  try{
+    const response = await fetch('relacao-gerentes-lojas.json?t=' + new Date().getTime());
+    if(response.ok){
+      LOJA_GERENTE_MAP = await response.json();
+    }
+  }catch(e){ /* mantem o mapeamento atual em caso de falha de rede */ }
+}
+
+// Carrega o historico de fechamentos mensais (arquivo fixo e leve, uma entrada por mes).
+async function loadHistorico(){
+  try{
+    const response = await fetch('historico/fechamentos.json?t=' + new Date().getTime());
+    if(response.ok){
+      const data = await response.json();
+      delete data._comentario;
+      historicoFechamentos = data;
+    }
+  }catch(e){ historicoFechamentos = {}; }
+}
+
+function fecharMesAtual(){
+  if(!lastMonthStats){
+    alert('Carregue o XML do mês antes de fechar o mês.');
+    return;
+  }
+  const { year, month, perSpiTotal, metas: metasDoMes } = lastMonthStats;
+  const mKey = `${year}-${String(month+1).padStart(2,'0')}`;
+
+  const totalGerados = SPI_KEYS.reduce((s,k)=> s + (perSpiTotal[k]||0), 0);
+  const porSpi = {}; const metasOut = {};
+  SPI_KEYS.forEach(k=>{ porSpi[k] = perSpiTotal[k]||0; metasOut[k] = Number(metasDoMes[k])||0; });
+
+  if(historicoFechamentos[mKey] && !confirm(`Já existe um fechamento salvo para ${mKey}. Substituir pelos números atuais?`)){
+    return;
+  }
+
+  historicoFechamentos[mKey] = {
+    fechadoEm: new Date().toISOString().slice(0,10),
+    totalGerados,
+    porSpi,
+    metas: metasOut
+  };
+
+  const blob = new Blob([JSON.stringify(historicoFechamentos, null, 2)], {type:'application/json;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'fechamentos.json';
+  a.click();
+  URL.revokeObjectURL(url);
+
+  renderHistorico();
+  alert(`Mês ${mKey} fechado com ${totalGerados} gerados. Arquivo fechamentos.json baixado — suba ele em historico/ no GitHub, substituindo o antigo.`);
+}
+
+function buildManualHistTable(){
+  const table = document.getElementById('manualHistTable');
+  let rows = '<tr><th>SPI</th><th>Meta</th><th>Realizado</th></tr>';
+  SPI_KEYS.forEach((key, i) => {
+    rows += `<tr>
+      <td>${SPI_GROUPS[i]}</td>
+      <td><input type="number" min="0" id="manualMeta_${key}" style="width:70px;padding:3px 5px;border:1.5px solid var(--line);border-radius:5px;font-size:11px;text-align:center;" placeholder="0"></td>
+      <td><input type="number" min="0" id="manualReal_${key}" style="width:70px;padding:3px 5px;border:1.5px solid var(--line);border-radius:5px;font-size:11px;text-align:center;" placeholder="0"></td>
+    </tr>`;
+  });
+  table.innerHTML = rows;
+}
+
+function salvarMesManual(){
+  const monthInput = document.getElementById('manualHistMonth').value;
+  if(!monthInput){
+    alert('Escolha o mês antes de salvar.');
+    return;
+  }
+
+  const porSpi = {}; const metasOut = {};
+  let totalGerados = 0;
+  SPI_KEYS.forEach(key=>{
+    const meta = Number(document.getElementById(`manualMeta_${key}`).value) || 0;
+    const real = Number(document.getElementById(`manualReal_${key}`).value) || 0;
+    metasOut[key] = meta;
+    porSpi[key] = real;
+    totalGerados += real;
+  });
+
+  if(totalGerados === 0 && Object.values(metasOut).every(v=>v===0)){
+    if(!confirm('Todos os campos estão zerados. Salvar assim mesmo?')) return;
+  }
+
+  if(historicoFechamentos[monthInput] && !confirm(`Já existe um fechamento salvo para ${monthInput}. Substituir pelos números digitados?`)){
+    return;
+  }
+
+  historicoFechamentos[monthInput] = {
+    fechadoEm: new Date().toISOString().slice(0,10),
+    totalGerados,
+    porSpi,
+    metas: metasOut
+  };
+
+  const blob = new Blob([JSON.stringify(historicoFechamentos, null, 2)], {type:'application/json;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'fechamentos.json';
+  a.click();
+  URL.revokeObjectURL(url);
+
+  renderHistorico();
+  alert(`Mês ${monthInput} salvo com ${totalGerados} gerados. Arquivo fechamentos.json baixado — suba ele em historico/ no GitHub, substituindo o antigo.`);
+}
+
+function renderHistorico(){
+  const sel = document.getElementById('histMonthSelect');
+  const table = document.getElementById('histTable');
+  const emptyMsg = document.getElementById('histEmptyMsg');
+  const forecastBox = document.getElementById('histForecast');
+  const months = Object.keys(historicoFechamentos).sort();
+
+  if(months.length === 0){
+    sel.innerHTML = '';
+    table.innerHTML = '';
+    forecastBox.innerHTML = '';
+    emptyMsg.style.display = 'block';
+    return;
+  }
+  emptyMsg.style.display = 'none';
+
+  if(sel.options.length !== months.length){
+    sel.innerHTML = months.map(m => `<option value="${m}">${m}</option>`).join('');
+    sel.value = months[months.length - 1];
+  }
+
+  const mKey = sel.value || months[months.length - 1];
+  const entry = historicoFechamentos[mKey];
+  if(!entry){ table.innerHTML = ''; forecastBox.innerHTML = ''; return; }
+
+  let rows = '<tr><th>SPI</th><th>Meta</th><th>Realizado</th><th>% Atingido</th></tr>';
+  let totalMeta = 0, totalReal = 0;
+  SPI_KEYS.forEach((key, i) => {
+    const meta = (entry.metas && entry.metas[key]) || 0;
+    const real = (entry.porSpi && entry.porSpi[key]) || 0;
+    totalMeta += meta; totalReal += real;
+    const pct = meta ? (real / meta * 100).toFixed(1) : '0.0';
+    rows += `<tr><td>${SPI_GROUPS[i]}</td><td>${meta}</td><td>${real}</td><td>${pct}%</td></tr>`;
+  });
+  const totalPct = totalMeta ? (totalReal / totalMeta * 100).toFixed(1) : '0.0';
+  rows += `<tr class="total-row"><td>Total</td><td>${totalMeta}</td><td>${totalReal}</td><td>${totalPct}%</td></tr>`;
+  table.innerHTML = rows;
+
+  const idx = months.indexOf(mKey);
+  if(idx > 0){
+    const prevEntry = historicoFechamentos[months[idx - 1]];
+    const prevReal = prevEntry ? (prevEntry.totalGerados || 0) : 0;
+    const curReal = entry.totalGerados || totalReal;
+    const delta = prevReal ? (((curReal - prevReal) / prevReal) * 100).toFixed(1) : null;
+    forecastBox.innerHTML = delta !== null
+      ? `Variação vs ${months[idx-1]}: ${delta > 0 ? '+' : ''}${delta}% (${prevReal} → ${curReal} gerados)`
+      : '';
+  } else {
+    forecastBox.innerHTML = '';
+  }
+
+  renderClosestMonth();
+}
+
+function buildSpiShareVector(porSpiObj){
+  const total = SPI_KEYS.reduce((s,k)=> s + (Number(porSpiObj[k])||0), 0);
+  if(total <= 0) return SPI_KEYS.map(()=>0);
+  return SPI_KEYS.map(k => (Number(porSpiObj[k])||0) / total);
+}
+
+function cosineSimilarity(a, b){
+  let dot=0, na=0, nb=0;
+  for(let i=0;i<a.length;i++){ dot += a[i]*b[i]; na += a[i]*a[i]; nb += b[i]*b[i]; }
+  if(na===0 || nb===0) return 0;
+  return dot / (Math.sqrt(na)*Math.sqrt(nb));
+}
+
+function renderClosestMonth(){
+  const body = document.getElementById('closestMonthBody');
+  const months = Object.keys(historicoFechamentos).sort();
+
+  if(!lastMonthStats || months.length === 0){
+    body.innerHTML = 'Carregue o XML do mês atual e tenha ao menos 1 mês no histórico para ver a comparação.';
+    return;
+  }
+
+  const curVec = buildSpiShareVector(lastMonthStats.perSpiTotal);
+  const curTotal = SPI_KEYS.reduce((s,k)=> s + (lastMonthStats.perSpiTotal[k]||0), 0);
+  const curMeta = SPI_KEYS.reduce((s,k)=> s + (Number(lastMonthStats.metas[k])||0), 0);
+
+  const ranked = months.map(mKey => {
+    const entry = historicoFechamentos[mKey];
+    const vec = buildSpiShareVector(entry.porSpi || {});
+    const sim = cosineSimilarity(curVec, vec);
+    const metaHist = SPI_KEYS.reduce((s,k)=> s + (Number(entry.metas && entry.metas[k])||0), 0);
+    const realHist = entry.totalGerados || SPI_KEYS.reduce((s,k)=> s + (Number(entry.porSpi && entry.porSpi[k])||0), 0);
+    const atingimento = metaHist ? (realHist/metaHist) : null;
+    return { mKey, sim, atingimento, realHist, metaHist };
+  }).filter(r => r.sim > 0).sort((a,b)=> b.sim - a.sim);
+
+  if(ranked.length === 0){
+    body.innerHTML = 'Ainda não há dados suficientes por SPI no histórico para comparar.';
+    return;
+  }
+
+  const top = ranked[0];
+  const simPct = (top.sim*100).toFixed(1);
+
+  let projecaoHtml = '';
+  if(top.atingimento !== null && curMeta > 0){
+    const projecaoTotal = Math.round(curMeta * top.atingimento);
+    projecaoHtml = `<p style="margin:6px 0 0;">Se o mês atual seguir um padrão de fechamento parecido com <strong>${top.mKey}</strong> (que atingiu ${(top.atingimento*100).toFixed(1)}% da meta), a projeção de fechamento seria em torno de <strong>${projecaoTotal}</strong> gerados (meta atual: ${curMeta}).</p>`;
+  }
+
+  let rankingHtml = '<table class="matrix" style="margin-top:8px;"><tr><th>Mês</th><th>Similaridade</th><th>% Meta atingida</th></tr>';
+  ranked.slice(0,5).forEach(r=>{
+    const pctAting = r.atingimento !== null ? (r.atingimento*100).toFixed(1)+'%' : '—';
+    rankingHtml += `<tr><td>${r.mKey}</td><td>${(r.sim*100).toFixed(1)}%</td><td>${pctAting}</td></tr>`;
+  });
+  rankingHtml += '</table>';
+
+  body.innerHTML = `
+    <p style="margin:0;">Mês mais parecido: <strong>${top.mKey}</strong> — similaridade de <strong>${simPct}%</strong> na distribuição por SPI (mês atual com ${curTotal} gerados até agora).</p>
+    ${projecaoHtml}
+    ${rankingHtml}
+  `;
+}
+
+// Normaliza texto de LOJA para cruzar com a relação de CLTs (maiúsculas, sem
+// acento, sem espaços duplicados) — o XML e a planilha nem sempre grafam igual.
+function normLoja(s){
+  return (s||'').trim().toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,' ');
+}
+
+// Cruza cada venda pela LOJA (não pelo nome do "Superior Direto do Corretor")
+// contra a relação de CLTs, agrupando por Regional -> Nome, do jeito da
+// planilha antiga: Fora / SENSIA / SP INT 1..6, com o gerente oficial da loja
+// e o total por regional. Guarda também, por pessoa e por semana, o detalhe
+// de empreendimento/loja de cada venda (pra árvore expansível).
+function buildGroupedWeeklyCounts(records, year, month, lastDay, canalTest, personField){
+  const firstDayOfMonth = new Date(year, month, 1);
+  const firstWeekday = firstDayOfMonth.getDay();
+  const numWeeks = Math.floor((firstWeekday + lastDay - 1) / 7) + 1;
+
+  const groups = {}; // { SPI1: { NOME: { counts:[...], weekly:[[{empreendimento,loja}],...] } }, FORA: {...} }
+
+  records.forEach(r=>{
+    if(!canalTest(r)) return;
+    const d = getEffectiveGeracaoDate(parseDateBR(r.geracao), year, month);
+    if(!d || d.getFullYear()!==year || d.getMonth()!==month) return;
+
+    const personRaw = (r[personField]||'').trim();
+    const semGerente = !personRaw || personRaw.toUpperCase()==='SEM GERENTE';
+
+    const lojaInfo = LOJA_GERENTE_MAP[normLoja(r.loja)];
+    const spiFromEmp = resolveSpi(r.empreendimento);
+    const regional = (lojaInfo && lojaInfo.regional) ? lojaInfo.regional
+                    : (SPI_KEYS.includes(spiFromEmp) ? spiFromEmp : null);
+
+    let groupKey, displayName;
+    if(!semGerente){
+      // Corrige o nome pelo gerente oficial da loja só quando estamos de fato
+      // olhando "gerente" (Superior Direto do Corretor). Para Supervisor
+      // (campo Corretor) a relação de CLTs não tem essa informação, então
+      // usamos o nome do XML mesmo — só a regional vem da loja.
+      displayName = (personField === 'superior' && lojaInfo && lojaInfo.gerente) ? lojaInfo.gerente : personRaw;
+      groupKey = regional || 'FORA';
+    } else {
+      // Sem gerente identificado: mostra pela loja/equipe, dentro de "Fora".
+      displayName = r.loja || '(sem loja)';
+      groupKey = 'FORA';
+    }
+
+    const w = Math.floor((firstWeekday + d.getDate() - 1) / 7);
+    groups[groupKey] = groups[groupKey] || {};
+    if(!groups[groupKey][displayName]){
+      groups[groupKey][displayName] = {
+        counts: new Array(numWeeks).fill(0),
+        weekly: Array.from({length: numWeeks}, () => [])
+      };
+    }
+    const entry = groups[groupKey][displayName];
+    entry.counts[w]++;
+    entry.weekly[w].push({
+      empreendimento: r.empreendimento || '(sem empreendimento)',
+      loja: r.loja || '(sem loja)'
+    });
+  });
+
+  return { groups, numWeeks };
+}
+
+// Monta o <details> com o nome e, dentro, a árvore de empreendimento — loja
+// de cada venda daquela pessoa na semana (agrupada, com contagem quando >1).
+// Fica fechado por padrão — só abre se o usuário clicar.
+function renderNameTree(name, items){
+  const agg = {};
+  items.forEach(it=>{
+    const k = it.empreendimento + ' ||| ' + it.loja;
+    if(!agg[k]) agg[k] = { empreendimento: it.empreendimento, loja: it.loja, count: 0 };
+    agg[k].count++;
+  });
+  const leaves = Object.values(agg).sort((a,b)=> b.count - a.count);
+  const leavesHtml = leaves.map(l =>
+    `<li>${l.empreendimento} <span class="team-tree-loja">— ${l.loja}</span>${l.count>1 ? ` <b>(${l.count})</b>` : ''}</li>`
+  ).join('');
+  return `<details class="team-tree"><summary>${name}</summary><ul class="team-tree-list">${leavesHtml}</ul></details>`;
+}
+
+function renderGroupedPersonTable(tableId, countId, records, year, month, lastDay, canalTest, personField, weekIndex){
+  const table = document.getElementById(tableId);
+  const countBadge = document.getElementById(countId);
+  const { groups, numWeeks } = buildGroupedWeeklyCounts(records, year, month, lastDay, canalTest, personField);
+  const wIdx = Math.max(0, Math.min(weekIndex, numWeeks - 1));
+
+  const orderedKeys = SPI_KEYS.filter(k => groups[k]);
+  if(groups['FORA']) orderedKeys.push('FORA');
+
+  let bodyHtml = '';
+  let totalPeople = 0;
+  let grandTotal = 0;
+
+  orderedKeys.forEach(key=>{
+    const peopleObj = groups[key];
+    // Só entra quem vendeu na semana selecionada — quem ficou a zero some.
+    const names = Object.keys(peopleObj).filter(n => (peopleObj[n].counts[wIdx] || 0) > 0);
+    if(names.length === 0) return;
+
+    names.sort((a,b)=> (peopleObj[b].counts[wIdx]||0) - (peopleObj[a].counts[wIdx]||0));
+    const groupTotal = names.reduce((s,n)=> s + (peopleObj[n].counts[wIdx]||0), 0);
+    const label = key === 'FORA' ? '🚩 Fora' : SPI_GROUPS[SPI_KEYS.indexOf(key)];
+
+    totalPeople += names.length;
+    grandTotal += groupTotal;
+
+    bodyHtml += `<tr class="team-group-row"><td>${label}</td><td>${groupTotal}</td></tr>`;
+    names.forEach(n=>{
+      const cnt = peopleObj[n].counts[wIdx];
+      const items = peopleObj[n].weekly[wIdx];
+      bodyHtml += `<tr class="team-name-row"><td>${renderNameTree(n, items)}</td><td>${cnt}</td></tr>`;
+    });
+  });
+
+  if(countBadge) countBadge.textContent = totalPeople > 0 ? `${totalPeople} nome${totalPeople>1?'s':''}` : '0 nomes';
+
+  if(!bodyHtml){
+    table.innerHTML = '<tr><td colspan="2" style="color:var(--muted);font-size:11px;padding:10px;">Ninguém deste grupo vendeu nesta semana.</td></tr>';
+    return;
+  }
+
+  const thead = `<tr><th style="text-align:left;">Regional / Nome</th><th>Vendas (Sem. ${wIdx+1})</th></tr>`;
+  const totalRow = `<tr class="total-row"><td>Total Geral</td><td>${grandTotal}</td></tr>`;
+  table.innerHTML = thead + bodyHtml + totalRow;
+}
+
+function populateTeamWeekSelect(numWeeks, defaultWeekIdx){
+  const sel = document.getElementById('teamWeekSelect');
+  const prevValue = sel.value;
+  sel.innerHTML = '';
+  for(let w=0; w<numWeeks; w++){
+    const opt = document.createElement('option');
+    opt.value = w;
+    opt.textContent = `Semana ${w+1}`;
+    sel.appendChild(opt);
+  }
+  const validPrev = prevValue !== '' && Number(prevValue) < numWeeks;
+  sel.value = validPrev ? prevValue : defaultWeekIdx;
+}
+
+function renderTeamTab(){
+  const emptyMsg = document.getElementById('teamEmptyMsg');
+  const sectionsWrap = document.getElementById('teamSectionsWrap');
+  if(currentRecords.length === 0){
+    emptyMsg.style.display = 'block';
+    sectionsWrap.style.display = 'none';
+    document.getElementById('teamWeekRange').textContent = '';
+    return;
+  }
+  emptyMsg.style.display = 'none';
+  sectionsWrap.style.display = 'block';
+
+  const { year, month } = getMajorityYearMonth(currentRecords);
+  const effDatesInMonth = currentRecords
+    .map(r=>getEffectiveGeracaoDate(parseDateBR(r.geracao), year, month))
+    .filter(d=>d && d.getFullYear()===year && d.getMonth()===month);
+  const lastDay = effDatesInMonth.length>0 ? Math.max(...effDatesInMonth.map(d=>d.getDate())) : 1;
+
+  const firstDayOfMonth = new Date(year, month, 1);
+  const firstWeekday = firstDayOfMonth.getDay();
+  const numWeeks = Math.floor((firstWeekday + lastDay - 1) / 7) + 1;
+  const defaultWeekIdx = numWeeks - 1;
+
+  populateTeamWeekSelect(numWeeks, defaultWeekIdx);
+  const weekIndex = Number(document.getElementById('teamWeekSelect').value);
+
+  const weekStartDay = Math.max(1, weekIndex*7 - firstWeekday + 1);
+  const weekEndDay = Math.min(lastDay, (weekIndex+1)*7 - firstWeekday);
+  document.getElementById('teamWeekRange').textContent = `dias ${weekStartDay} a ${weekEndDay} do mês`;
+
+  renderGroupedPersonTable('teamAgsTable', 'teamAgsCount', currentRecords, year, month, lastDay,
+    r => r.canal === 'AGS', 'superior', weekIndex);
+
+  renderGroupedPersonTable('teamGerentesTable', 'teamGerentesCount', currentRecords, year, month, lastDay,
+    r => r.canal === 'HOUSE', 'superior', weekIndex);
+
+  renderGroupedPersonTable('teamGerentesImobTable', 'teamGerentesImobCount', currentRecords, year, month, lastDay,
+    r => r.canal === 'IMOB', 'superior', weekIndex);
+
+  renderGroupedPersonTable('teamSupervisoresTable', 'teamSupervisoresCount', currentRecords, year, month, lastDay,
+    r => r.canal === 'IMOB', 'corretor', weekIndex);
+}
+
+function saveMetas(){
+  const { year, month } = getSimYearMonth();
+  const mKey = `${year}_${month}`;
+  allMetasByMonth[mKey] = metas;
+  try{ localStorage.setItem('spi-metas-map', JSON.stringify(allMetasByMonth)); }catch(e){}
+}
+
+async function saveMapping(){
+  try{ localStorage.setItem('spi-mapping-overrides', JSON.stringify(mappingOverrides)); }catch(e){}
+}
+
+function savePdvPcts(){
+  const { year, month } = getSimYearMonth();
+  const mKey = `${year}_${month}`;
+  allPdvPctsByMonth[mKey] = pdvPcts;
+  try{ localStorage.setItem('spi-pdv-pcts-map', JSON.stringify(allPdvPctsByMonth)); }catch(e){}
+}
+
+function parseXML(text){
+  const xmlDoc = new DOMParser().parseFromString(text, 'application/xml');
+  const nodes = xmlDoc.getElementsByTagName('Detail');
+  const records = [];
+  for(let i=0;i<nodes.length;i++){
+    const el = nodes[i];
+    records.push({
+      empreendimento: el.getAttribute('EMPREENDIMENTO') || '(sem empreendimento)',
+      loja: (el.getAttribute('LOJA') || '').trim(),
+      geracao: el.getAttribute('GERACAO') || '',
+      status: el.getAttribute('STATUS_DO_CONTRATO') || '',
+      canal: resolveCanal(el.getAttribute('TIPO_CANAL') || '', el.getAttribute('LOJA') || ''),
+      corretor: (el.getAttribute('CORRETOR') || '').trim(),
+      superior: (el.getAttribute('Superior_Direto_do_Corretor') || '').trim()
+    });
+  }
+  return records;
+}
+
+function resolveCanal(tipoCanal, loja){
+  const lojaUp = (loja||'').toUpperCase();
+  if(lojaUp.includes('AGENTE DE SONHOS') || lojaUp.includes(' AGS')) return 'AGS';
+  if((tipoCanal||'').toUpperCase() === 'IMOB') return 'IMOB';
+  return 'HOUSE';
+}
+
+function parseDateBR(s){
+  const p = s.split('/');
+  if(p.length!==3) return null;
+  return new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]));
+}
+function daysInMonth(year, month){ return new Date(year, month+1, 0).getDate(); }
+
+function getDayName(dObj){
+  const days = ['seg','ter','qua','qui','sex','sáb','dom'];
+  let idx = dObj.getDay() - 1;
+  if(idx === -1) idx = 6;
+  return days[idx];
+}
+
+function getQuarter(d){
+  if(d<=8) return 1;
+  if(d<=15) return 2;
+  if(d<=22) return 3;
+  return 4;
+}
+
+function getCalculatedDataForSpi(spiKey, year, month){
+  const tDays = daysInMonth(year, month);
+  let rawPcts = {};
+  
+  for(let d=1; d<=tDays; d++){
+    const k = `${spiKey}_${d}`;
+    if(pdvPcts[k] !== undefined){
+      rawPcts[d] = pdvPcts[k];
+    } else {
+      const dObj = new Date(year, month, d);
+      const dayName = getDayName(dObj);
+      const q = getQuarter(d);
+      const wDay = WEEKDAY_WEIGHTS[dObj.getDay() === 0 ? 6 : dObj.getDay() - 1] || 0.14;
+      const wQ = QUARTER_WEIGHTS[q] || 0.25;
+      rawPcts[d] = wDay * wQ;
+    }
+  }
+
+  let sumPcts = 0;
+  for(let d=1; d<=tDays; d++){
+    sumPcts += rawPcts[d];
+  }
+
+  let norms = {};
+  let assDays = {};
+  let acums = {};
+  let runAcum = 0;
+  const meta = Number(metas[spiKey]) || 0;
+
+  for(let d=1; d<=tDays; d++){
+    norms[d] = sumPcts > 0 ? (rawPcts[d] / sumPcts) : (1 / tDays);
+    assDays[d] = norms[d] * meta;
+    runAcum += assDays[d];
+    acums[d] = Math.round(runAcum);
+  }
+
+  return { rawPcts, norms, assDays, acums };
+}
+
+async function loadFromText(text){  
+  currentXmlText = text;  
+  currentRecords = parseXML(text);  
+  loadMonthSettings(); 
+  currentEmpreendimentos = [...new Set(currentRecords.map(r=>r.empreendimento))].sort();  
+  initRegionalFilter();  
+  document.getElementById('emptyState').style.display = 'none';  
+  document.getElementById('dashboard').style.display = 'block';  
+  buildSimMetaBar();  
+  renderPdvTable();  
+  requestAnimationFrame(() => {    
+    requestAnimationFrame(() => {      
+      render();    });  });
+}
+
+function updateFileStatus(){
+  if(lastUploadMeta){
+    const d = new Date(lastUploadMeta.uploadedAt);
+    document.getElementById('fileStatus').textContent =
+      'Atualizado em: ' + d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }
+}
+
+async function handleFile(file){
+  const text = await file.text();
+  await loadFromText(text);
+  lastUploadMeta = {uploadedAt: new Date().toISOString()};
+  updateFileStatus();
+}
+
+function switchTab(tab){
+  document.getElementById('tabDashBtn').className = tab==='dash' ? 'tab-btn active' : 'tab-btn';
+  document.getElementById('tabSimBtn').className = tab==='sim' ? 'tab-btn active' : 'tab-btn';
+  document.getElementById('tabHistBtn').className = tab==='hist' ? 'tab-btn active' : 'tab-btn';
+  document.getElementById('tabTeamBtn').className = tab==='team' ? 'tab-btn active' : 'tab-btn';
+  document.getElementById('tabDashContent').style.display = tab==='dash' ? 'block' : 'none';
+  document.getElementById('tabSimContent').style.display = tab==='sim' ? 'block' : 'none';
+  document.getElementById('tabHistContent').style.display = tab==='hist' ? 'block' : 'none';
+  document.getElementById('tabTeamContent').style.display = tab==='team' ? 'block' : 'none';
+
+  if(tab==='dash'){
+    if(currentRecords.length>0) render();
+  } else if(tab==='sim'){
+    buildSimMetaBar();
+    renderPdvTable();
+  } else if(tab==='hist'){
+    renderHistorico();
+  } else if(tab==='team'){
+    renderTeamTab();
+  }
+}
+
+function initRegionalFilter(){
+  const sel = document.getElementById('simRegionalFilter');
+  sel.innerHTML = '<option value="ALL">Todas as Regionais (SPIs)</option>';
+  SPI_GROUPS.forEach((label,i)=>{
+    sel.innerHTML += `<option value="${SPI_KEYS[i]}">${label}</option>`;
+  });
+}
+
+function buildSimMetaBar(){
+  const bar = document.getElementById('simMetaBar');
+  if(!bar) return;
+  const filterVal = document.getElementById('simRegionalFilter') ? document.getElementById('simRegionalFilter').value : 'ALL';
+  const activeIdx = filterVal === 'ALL' ? SPI_KEYS.map((_,i)=>i) : [SPI_KEYS.indexOf(filterVal)];
+
+  let html = '<div class="sim-meta-title">🎯 Meta mensal por SPI — edite aqui e a tabela recalcula (%, Norm, Ass/Dia e Acum) na hora</div>';
+  activeIdx.forEach(i=>{
+    const k = SPI_KEYS[i];
+    const label = SPI_GROUPS[i];
+    html += `<div class="sim-meta-field"><label>${label}</label><input type="number" min="0" inputmode="numeric" data-metakey="${k}" value="${metas[k]||0}"></div>`;
+  });
+  bar.innerHTML = html;
+}
+
+function updateMetaFromSimBar(input){
+  const k = input.dataset.metakey;
+  const val = Number(input.value)||0;
+  metas[k] = val;
+  saveMetas();
+  Object.keys(pdvPcts).forEach(pk=>{ if(pk.startsWith(k+'_')) delete pdvPcts[pk]; });
+  savePdvPcts();
+  renderPdvTable();
+  if(currentRecords.length>0) render();
+}
+
+document.getElementById('simMetaBar').addEventListener('change', e=>{
+  if(e.target && e.target.dataset && e.target.dataset.metakey){
+    updateMetaFromSimBar(e.target);
+  }
+});
+
+function renderPdvTable(){
+  const { year, month } = getSimYearMonth();
+  const tDays = daysInMonth(year, month);
+  const filterVal = document.getElementById('simRegionalFilter').value;
+
+  const monthLabel = document.getElementById('simMonthLabel');
+  if(monthLabel){
+    const nomeMes = new Date(year, month, 1).toLocaleDateString('pt-BR', {month:'long', year:'numeric'});
+    monthLabel.textContent = (currentRecords.length>0 ? 'Mês em cálculo (base no XML carregado): ' : 'Mês em cálculo (nenhum XML carregado ainda — usando mês atual): ') + nomeMes;
+  }
+
+  const activeKeys = filterVal === 'ALL' ? SPI_KEYS : [filterVal];
+  const activeGroups = filterVal === 'ALL' ? SPI_GROUPS : [SPI_GROUPS[SPI_KEYS.indexOf(filterVal)]];
+
+  let thead = `<tr>
+    <th rowspan="2">Dias</th>
+    <th rowspan="2">Dia da Sem</th>
+    <th rowspan="2">Quarter</th>`;
+  
+  activeGroups.forEach(g => {
+    thead += `<th colspan="4" style="text-align:center;">${g}</th>`;
+  });
+  thead += `</tr><tr>`;
+  activeGroups.forEach(() => {
+    thead += `<th>%</th><th>Norm</th><th>Ass/Dia</th><th>Acum</th>`;
+  });
+  thead += `</tr>`;
+
+  let rows = '';
+  const spiData = {};
+  activeKeys.forEach(k => {
+    spiData[k] = getCalculatedDataForSpi(k, year, month);
+  });
+
+  for(let d=1; d<=tDays; d++){
+    const dObj = new Date(year, month, d);
+    const dName = getDayName(dObj);
+    const q = getQuarter(d);
+
+    rows += `<tr>
+      <td>${dObj.toLocaleDateString('pt-BR')}</td>
+      <td>${dName}</td>
+      <td>${q}</td>`;
+
+    activeKeys.forEach(k => {
+      const data = spiData[k];
+      const pctVal = data.rawPcts[d] * 100;
+      const normVal = data.norms[d];
+      const assDayVal = data.assDays[d];
+      const acumVal = data.acums[d];
+
+      rows += `<td><input type="text" value="${pctVal.toFixed(4).replace('.',',')}" data-spi="${k}" data-day="${d}" onchange="updatePdvPct(this)" onpaste="handlePasteBatch(event, '${k}', ${d})">%</td>
+        <td>${normVal.toFixed(4).replace('.',',')}</td>
+        <td>${assDayVal.toFixed(2).replace('.',',')}</td>
+        <td style="font-weight:700; background:#f9fbf9;">${acumVal}</td>`;
+    });
+    rows += `</tr>`;
+  }
+
+  let totalRow = '<tr class="total-row"><td colspan="3">Total do mês</td>';
+  activeKeys.forEach(k=>{
+    const data = spiData[k];
+    let sumRaw=0, sumNorm=0, sumAss=0;
+    for(let d=1; d<=tDays; d++){ sumRaw+=data.rawPcts[d]; sumNorm+=data.norms[d]; sumAss+=data.assDays[d]; }
+    const acumFinal = data.acums[tDays] || 0;
+    totalRow += `<td>${(sumRaw*100).toFixed(2).replace('.',',')}%</td><td>${sumNorm.toFixed(4).replace('.',',')}</td><td>${sumAss.toFixed(2).replace('.',',')}</td><td>${acumFinal.toLocaleString('pt-BR')}</td>`;
+  });
+  totalRow += '</tr>';
+
+  document.getElementById('pdvTable').innerHTML = thead + rows + totalRow;
+}
+
+function updatePdvPct(input){
+  const spi = input.dataset.spi;
+  const day = Number(input.dataset.day);
+  const rawVal = input.value.replace(',', '.').replace('%','').trim();
+  const val = (Number(rawVal) || 0) / 100;
+  pdvPcts[`${spi}_${day}`] = val;
+  savePdvPcts();
+  renderPdvTable();
+}
+
+function handlePasteBatch(e, targetSpiKey, startDay){
+  e.preventDefault();
+  const pasteData = (e.clipboardData || window.clipboardData).getData('text');
+  if(!pasteData) return;
+
+  const rows = pasteData.split(/\r?\n/).filter(r => r.trim() !== '');
+  const { year, month } = getSimYearMonth();
+  const tDays = daysInMonth(year, month);
+  const filterVal = document.getElementById('simRegionalFilter').value;
+  const activeKeys = filterVal === 'ALL' ? SPI_KEYS : [filterVal];
+
+  const firstCols = rows[0].split('\t');
+
+  if(firstCols.length > 1 && filterVal === 'ALL') {
+    const startSpiIndex = activeKeys.indexOf(targetSpiKey);
+    rows.forEach((rowStr, rIdx) => {
+      const cols = rowStr.split('\t');
+      const targetSpiIdx = startSpiIndex + rIdx;
+      if(targetSpiIdx < activeKeys.length) {
+        const currentSpi = activeKeys[targetSpiIdx];
+        let currentDay = startDay;
+        cols.forEach(valStr => {
+          if(currentDay <= tDays){
+            const cleanVal = valStr.replace(',', '.').replace('%','').trim();
+            const num = Number(cleanVal);
+            if(!isNaN(num)){
+              pdvPcts[`${currentSpi}_${currentDay}`] = num / (num > 1 ? 100 : 1);
+            }
+            currentDay++;
+          }
+        });
+      }
+    });
+  } else {
+    let currentDay = startDay;
+    rows.forEach(rowStr => {
+      const cols = rowStr.split('\t');
+      cols.forEach(valStr => {
+        if(currentDay <= tDays){
+          const cleanVal = valStr.replace(',', '.').replace('%','').trim();
+          const num = Number(cleanVal);
+          if(!isNaN(num)){
+            pdvPcts[`${targetSpiKey}_${currentDay}`] = num / (num > 1 ? 100 : 1);
+          }
+          currentDay++;
+        }
+      });
+    });
+  }
+  savePdvPcts();
+  renderPdvTable();
+}
+
+function resetSimulations(){
+  const { year, month } = getSimYearMonth();
+  const nomeMes = new Date(year, month, 1).toLocaleDateString('pt-BR', {month:'long', year:'numeric'});
+  if(confirm(`Deseja restaurar as metas e percentuais padrão para ${nomeMes}?`)){
+    const mKey = `${year}_${month}`;
+    delete allPdvPctsByMonth[mKey];
+    delete allMetasByMonth[mKey];
+    localStorage.setItem('spi-pdv-pcts-map', JSON.stringify(allPdvPctsByMonth));
+    localStorage.setItem('spi-metas-map', JSON.stringify(allMetasByMonth));
+    loadMonthSettings();
+    buildSimMetaBar();
+    renderPdvTable();
+    if(currentRecords.length>0) render();
+  }
+}
+
+function clearFilters(){
+  selectedSpiFilter = null;
+  selectedStatusFilter = null;
+  selectedChannelFilter = null;
+  render();
+}
+
+function render(){
+  if(currentRecords.length===0) return;
+
+  const { year, month } = getMajorityYearMonth(currentRecords);
+  const totalDays = daysInMonth(year, month);
+
+  const effDatesInMonth = currentRecords
+    .map(r=>getEffectiveGeracaoDate(parseDateBR(r.geracao), year, month))
+    .filter(d=>d && d.getFullYear()===year && d.getMonth()===month);
+  const lastDay = effDatesInMonth.length>0 ? Math.max(...effDatesInMonth.map(d=>d.getDate())) : 1;
+
+  const hoje = new Date();
+  let diaAtual = hoje.getDate();
+  if (hoje.getFullYear() !== year || hoje.getMonth() !== month) {
+    diaAtual = lastDay;
+  }
+  const diasRestantes = Math.max(1, totalDays - diaAtual + 1);
+
+  const monthRecords = currentRecords.filter(r=>{
+    const d = getEffectiveGeracaoDate(parseDateBR(r.geracao), year, month);
+    if(!d || d.getFullYear()!==year || d.getMonth()!==month) return false;
+    if(selectedSpiFilter) {
+      const spiKey = resolveSpi(r.empreendimento);
+      if(spiKey !== selectedSpiFilter) return false;
+    }
+    return true;
+  });
+
+  const statusCount = {Ativo:0,'Pré-Ativo':0,Rascunho:0};
+  const channelCount = {HOUSE:0, IMOB:0, AGS:0};
+  monthRecords.forEach(r=>{
+    if(statusCount.hasOwnProperty(r.status)) statusCount[r.status]++;
+    if(channelCount.hasOwnProperty(r.canal)) channelCount[r.canal]++;
+  });
+
+  const inMonth = monthRecords.filter(r=>{
+    if(selectedStatusFilter && r.status !== selectedStatusFilter) return false;
+    if(selectedChannelFilter && r.canal !== selectedChannelFilter) return false;
+    return true;
+  });
+
+  const perSpiPerDay = {};
+  const perSpiTotal = {};
+  const perDayTotal = new Array(totalDays+1).fill(0);
+  let unmappedCount = 0;
+  const unmappedList = new Set();
+
+  SPI_KEYS.forEach(k=>{ perSpiPerDay[k]=new Array(totalDays+1).fill(0); perSpiTotal[k]=0; });
+
+  inMonth.forEach(r=>{
+    const spiKey = resolveSpi(r.empreendimento);
+    const d = getEffectiveGeracaoDate(parseDateBR(r.geracao), year, month);
+    const day = d.getDate();
+    perDayTotal[day] = (perDayTotal[day]||0) + 1;
+    if(spiKey && SPI_KEYS.includes(spiKey)){
+      perSpiPerDay[spiKey][day]++;
+      perSpiTotal[spiKey]++;
+    } else {
+      unmappedCount++;
+      unmappedList.add(r.empreendimento);
+    }
+  });
+
+  const warn = document.getElementById('unmappedWarning');
+  if(unmappedList.size>0){
+    warn.style.display='flex';
+    warn.innerHTML = '⚠ ' + unmappedCount + ' contrato(s) de ' + unmappedList.size +
+      ' empreendimento(s) ainda sem SPI definido. Abra "Configurações" para mapear: ' +
+      [...unmappedList].slice(0,4).join(', ') + (unmappedList.size>4?'…':'');
+  } else {
+    warn.style.display='none';
+  }
+
+  const filterBanner = document.getElementById('filterBanner');
+  let filterTexts = [];
+  if(selectedSpiFilter) filterTexts.push('Regional: ' + SPI_GROUPS[SPI_KEYS.indexOf(selectedSpiFilter)]);
+  if(selectedStatusFilter) filterTexts.push('Status: ' + selectedStatusFilter);
+  if(selectedChannelFilter) filterTexts.push('Canal: ' + ({HOUSE:'House',IMOB:'Imob',AGS:'AGS'}[selectedChannelFilter]));
+
+  if(filterTexts.length > 0){
+    filterBanner.style.display = 'flex';
+    document.getElementById('filterBannerText').textContent = '🔎 Filtrando Painel Executivo por ' + filterTexts.join(' | ');
+  } else {
+    filterBanner.style.display = 'none';
+  }
+
+  document.getElementById('statBoxAtivo').style.background = (selectedStatusFilter === 'Ativo') ? '#d1e7dd' : 'transparent';
+  document.getElementById('statBoxPreAtivo').style.background = (selectedStatusFilter === 'Pré-Ativo') ? '#d1e7dd' : 'transparent';
+  document.getElementById('statBoxRascunho').style.background = (selectedStatusFilter === 'Rascunho') ? '#d1e7dd' : 'transparent';
+  document.getElementById('statBoxTotal').style.background = (!selectedStatusFilter) ? '#d1e7dd' : 'transparent';
+
+  document.getElementById('statBoxHouse').style.background = (selectedChannelFilter === 'HOUSE') ? '#d1e7dd' : 'transparent';
+  document.getElementById('statBoxImob').style.background = (selectedChannelFilter === 'IMOB') ? '#d1e7dd' : 'transparent';
+  document.getElementById('statBoxAGS').style.background = (selectedChannelFilter === 'AGS') ? '#d1e7dd' : 'transparent';
+  document.getElementById('statBoxCanalTodos').style.background = (!selectedChannelFilter) ? '#d1e7dd' : 'transparent';
+  document.getElementById('statHouse').textContent = channelCount.HOUSE;
+  document.getElementById('statImob').textContent = channelCount.IMOB;
+  document.getElementById('statAGS').textContent = channelCount.AGS;
+  document.getElementById('statCanalTodos').textContent = monthRecords.length;
+
+  const isFiltered = selectedSpiFilter !== null;
+  const keysToRender = isFiltered ? [selectedSpiFilter] : SPI_KEYS;
+  const groupsToRender = isFiltered ? [SPI_GROUPS[SPI_KEYS.indexOf(selectedSpiFilter)]] : SPI_GROUPS;
+
+  const metaTotal = isFiltered ? (Number(metas[selectedSpiFilter]) || 0) : SPI_KEYS.reduce((s,k)=>s+(Number(metas[k])||0),0);
+  const realizadoMappedTotal = isFiltered ? perSpiTotal[selectedSpiFilter] : SPI_KEYS.reduce((s,k)=>s+perSpiTotal[k],0);
+  const gapPct = metaTotal>0 ? (realizadoMappedTotal/metaTotal*100) : 0;
+  const gapQtd = realizadoMappedTotal - metaTotal;
+
+  const gapRestanteTotal = Math.max(0, metaTotal - realizadoMappedTotal);
+  const vendasDiaRestanteTotal = gapRestanteTotal / diasRestantes;
+
+  document.getElementById('kpiMeta').textContent = metaTotal.toLocaleString('pt-BR');
+  document.getElementById('kpiRealizado').textContent = realizadoMappedTotal.toLocaleString('pt-BR');
+  document.getElementById('kpiGapPct').textContent = gapPct.toFixed(1).replace('.',',')+'%';
+  document.getElementById('kpiGapQtd').textContent = (gapQtd>0?'+':'')+gapQtd;
+  document.getElementById('kpiVendasDia').textContent = vendasDiaRestanteTotal.toFixed(0);
+  document.getElementById('statAtivo').textContent = statusCount.Ativo;
+  document.getElementById('statPreAtivo').textContent = statusCount['Pré-Ativo'];
+  document.getElementById('statRascunho').textContent = statusCount.Rascunho;
+  document.getElementById('statTotal').textContent = monthRecords.length;
+
+  const tbody = document.getElementById('spiTableBody');
+  tbody.innerHTML='';
+  SPI_GROUPS.forEach((label,i)=>{
+    const k = SPI_KEYS[i];
+    const meta = Number(metas[k])||0;
+    const real = perSpiTotal[k];
+    const pct = meta>0 ? (real/meta*100) : 0;
+    const gq = real-meta;
+    const spiGapRestante = Math.max(0, meta - real);
+    const spiVendasDia = spiGapRestante / diasRestantes;
+    const isActive = selectedSpiFilter === k;
+    tbody.innerHTML += `<tr 
+      onclick="selectedSpiFilter = (selectedSpiFilter === '${k}') ? null : '${k}'; render();"
+      style="cursor:pointer; background:${isActive ? '#d1e7dd' : ''}; transition:background .15s;"
+    >
+      <td>${label} ${isActive ? '✓' : ''}</td>
+      <td>${meta}</td>
+      <td>${real}</td>
+      <td><span class="gap-cell" style="background:${gapColor(pct, lastDay)}">${pct.toFixed(1).replace('.',',')}%</span></td>
+      <td>${gq>0?'+':''}${gq}</td>
+      <td>${spiVendasDia.toFixed(0)}</td>
+    </tr>`;
+  });
+  const isActiveTotal = !selectedSpiFilter;
+  tbody.innerHTML += `<tr class="total-row"
+    onclick="selectedSpiFilter = null; render();"
+    style="cursor:pointer; background:${isActiveTotal ? '#d1e7dd' : 'var(--green-light)'};"
+  >
+    <td>Total ${isActiveTotal ? '✓' : ''}</td>
+    <td>${metaTotal}</td>
+    <td>${realizadoMappedTotal}</td>
+    <td><span class="gap-cell" style="background:${gapColor(gapPct, lastDay)}">${gapPct.toFixed(1).replace('.',',')}%</span></td>
+    <td>${gapQtd>0?'+':''}${gapQtd}</td>
+    <td>${vendasDiaRestanteTotal.toFixed(0)}</td>
+  </tr>`;
+
+  const matrixTable = document.getElementById('matrixTable');
+  
+  let theadRow1 = '<tr><th rowspan="2" style="width:62px;min-width:62px;">SPI</th>';
+  for(let d=1; d<=lastDay; d++){
+    const dObj = new Date(year, month, d);
+    const wName = getDayName(dObj);
+    theadRow1 += `<th style="width:20px;min-width:20px;max-width:20px;">${wName}</th>`;
+  }
+  theadRow1 += '<th rowspan="2" style="width:34px;min-width:34px;">Total</th></tr>';
+
+  let theadRow2 = '<tr>';
+  for(let d=1; d<=lastDay; d++){
+    const dayStr = String(d).padStart(2, '0');
+    theadRow2 += `<th style="width:20px;min-width:20px;max-width:20px;">${dayStr}</th>`;
+  }
+  theadRow2 += '</tr>';
+
+  let rows = '';
+  groupsToRender.forEach((label,idx)=>{
+    const k = keysToRender[idx];
+    rows += `<tr><td>${label}</td>`;
+    for(let d=1; d<=lastDay; d++){
+      const v = perSpiPerDay[k][d];
+      rows += `<td style="background:${heatColor(v)}">${v||''}</td>`;
+    }
+    rows += `<td class="total-col">${perSpiTotal[k]}</td></tr>`;
+  });
+  let totalRow = '<tr class="total-row"><td>Total</td>';
+  for(let d=1; d<=lastDay; d++){
+    let sumD = 0;
+    keysToRender.forEach(k => { sumD += perSpiPerDay[k][d]; });
+    totalRow += `<td>${sumD||''}</td>`;
+  }
+  totalRow += `<td class="total-col">${realizadoMappedTotal}</td></tr>`;
+  matrixTable.innerHTML = theadRow1 + theadRow2 + rows + totalRow;
+
+  const firstDayOfMonth = new Date(year, month, 1);
+  const firstWeekday = firstDayOfMonth.getDay(); 
+  const numWeeks = Math.floor((firstWeekday + lastDay - 1) / 7) + 1;
+  
+  const perSpiWeek = {};
+  SPI_KEYS.forEach(k=>{
+    perSpiWeek[k]=new Array(numWeeks).fill(0);
+    for(let d=1; d<=lastDay; d++){
+      const w = Math.floor((firstWeekday + d - 1) / 7);
+      perSpiWeek[k][w] += perSpiPerDay[k][d];
+    }
+  });
+  
+  const weekTable = document.getElementById('weekTable');
+  let wthead = '<tr><th>SPI</th>';
+  for(let w=1; w<=numWeeks; w++) wthead += `<th>Sem. ${w}</th>`;
+  wthead += '<th>Total</th></tr>';
+  let wrows='';
+  groupsToRender.forEach((label,idx)=>{
+    const k = keysToRender[idx];
+    wrows += `<tr><td>${label}</td>`;
+    for(let w=0; w<numWeeks; w++) wrows += `<td>${perSpiWeek[k][w]||''}</td>`;
+    wrows += `<td>${perSpiTotal[k]}</td></tr>`;
+  });
+  let wtotal = '<tr class="total-row"><td>Total</td>';
+  for(let w=0; w<numWeeks; w++){
+    let sumW = 0;
+    keysToRender.forEach(k => { sumW += perSpiWeek[k][w]; });
+    wtotal += `<td>${sumW||''}</td>`;
+  }
+  wtotal += `<td>${realizadoMappedTotal}</td></tr>`;
+  weekTable.innerHTML = wthead+wrows+wtotal;
+
+  const cumGerado = [];
+  let run=0;
+  for(let d=1; d<=totalDays; d++){ 
+    if(d <= lastDay) {
+      let dayVal = 0;
+      keysToRender.forEach(k => { dayVal += perSpiPerDay[k][d]; });
+      run += dayVal; 
+      cumGerado.push(run); 
+    } else {
+      cumGerado.push(null);
+    }
+  }
+  const cumPlano = [];
+  let runPlano = 0;
+  for(let d=1; d<=totalDays; d++){ 
+    keysToRender.forEach(k => {
+      const data = getCalculatedDataForSpi(k, year, month);
+      runPlano += data.assDays[d];
+    });
+    cumPlano.push(Math.round(runPlano)); 
+  }
+  drawChart(Array.from({length:totalDays},(_,i)=>i+1), cumPlano, cumGerado);
+
+  lastMonthStats = { year, month, perSpiTotal: {...perSpiTotal}, metas: {...metas} };
+}
+
+function gapColor(pct, lastDay){
+  let target = 100;
+  if(lastDay <= 15) target = 30;
+  else if(lastDay <= 25) target = 70;
+  const ratio = pct / target;
+  if(ratio >= 1) return 'var(--good-green)';       
+  if(ratio >= 0.8) return 'var(--light-green)';    
+  if(ratio >= 0.6) return 'var(--yellow)';         
+  if(ratio >= 0.4) return 'var(--amber)';          
+  return 'var(--red)';                             
+}
+
+function heatColor(v){
+  if(!v || v===0) return '#ffffff';
+  if(v>=5) return 'var(--good-green)';
+  if(v===4) return 'var(--light-green)';
+  if(v===3) return 'var(--yellow)';
+  if(v===2) return 'var(--amber)';
+  if(v===1) return 'var(--red)';
+  return '#ffffff';
+}
+
+function drawChart(labels, plano, gerados){
+  const wrap = document.getElementById('mainChartWrap');
+  if(!wrap) return;
+
+  const rect = wrap.getBoundingClientRect();
+  const w = rect.width > 50 ? rect.width : 550;
+  const h = rect.height > 50 ? rect.height : 165;
+
+  const padL = 30, padR = 14, padT = 12, padB = 22;
+  const cW = w - padL - padR;
+  const cH = h - padT - padB;
+
+  let maxVal = 5;
+  [...plano, ...gerados].forEach(v => { if(v !== null && v > maxVal) maxVal = v; });
+  maxVal = Math.ceil(maxVal * 1.15);
+
+  const n = labels.length;
+  const getX = (i) => padL + (n > 1 ? (i / (n - 1)) * cW : cW / 2);
+  const getY = (val) => padT + cH - (val / maxVal) * cH;
+
+  let svg = `<svg viewBox="0 0 ${w.toFixed(0)} ${h.toFixed(0)}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block;">`;
+
+  for(let i = 0; i <= 4; i++){
+    const yVal = Math.round((maxVal / 4) * i);
+    const yCoord = getY(yVal);
+    svg += `<line x1="${padL}" y1="${yCoord.toFixed(1)}" x2="${(w - padR).toFixed(1)}" y2="${yCoord.toFixed(1)}" stroke="#eef2ef" stroke-width="1"/>`;
+  }
+
+  const buildPath = (data) => {
+    let pts = [];
+    data.forEach((val, i) => {
+      if(val !== null && val !== undefined){
+        pts.push(`${getX(i).toFixed(1)},${getY(val).toFixed(1)}`);
+      }
+    });
+    return pts.length > 1 ? `M ${pts.join(' L ')}` : '';
+  };
+
+  const planoPath = buildPath(plano);
+  if(planoPath){
+    svg += `<path d="${planoPath}" fill="none" stroke="#7c8c82" stroke-width="2"/>`;
+  }
+
+  const geradosPath = buildPath(gerados);
+  if(geradosPath){
+    svg += `<path d="${geradosPath}" fill="none" stroke="#FF8B22" stroke-width="2.5"/>`;
+  }
+
+  plano.forEach((val, i) => {
+    if(val === null || val === undefined) return;
+    const x = getX(i), y = getY(val);
+    const label = String(val);
+    const bw = label.length * 4.5 + 4;
+    const bh = 11;
+    const bx = x - bw / 2;
+    const by = y - 5 - bh;
+    svg += `<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh}" rx="2" ry="2" fill="#5a6e63" opacity="0.88"/>`;
+    svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2" fill="#7c8c82"/>`;
+    svg += `<text x="${x.toFixed(1)}" y="${(by + bh - 2).toFixed(1)}" fill="#ffffff" font-size="7.5" font-weight="700" font-family="Verdana,Arial,sans-serif" text-anchor="middle">${label}</text>`;
+  });
+
+  gerados.forEach((val, i) => {
+    if(val === null || val === undefined) return;
+    const x = getX(i), y = getY(val);
+    const label = String(val);
+    const bw = label.length * 4.5 + 4;
+    const bh = 11;
+    const bx = x - bw / 2;
+    const by = y + 4;
+    svg += `<rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh}" rx="2" ry="2" fill="#FF8B22" opacity="0.92"/>`;
+    svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.5" fill="#FF8B22"/>`;
+    svg += `<text x="${x.toFixed(1)}" y="${(by + bh - 2).toFixed(1)}" fill="#ffffff" font-size="7.5" font-weight="700" font-family="Verdana,Arial,sans-serif" text-anchor="middle">${label}</text>`;
+  });
+
+  labels.forEach((lbl, i) => {
+    const x = getX(i);
+    svg += `<text x="${x.toFixed(1)}" y="${(h - 4).toFixed(1)}" fill="#6b7d72" font-size="7.5" font-family="Verdana,Arial,sans-serif" text-anchor="middle">${lbl}</text>`;
+  });
+
+  svg += `</svg>`;
+  wrap.innerHTML = svg;
+}
+
+window.addEventListener('resize', () => {  
+  if(currentRecords.length > 0){    
+    requestAnimationFrame(() => render());  
+  }
+});
+
+function buildMapList(){
+  const list = document.getElementById('mapList');
+  const emptyMsg = document.getElementById('mapEmptyMsg');
+  list.innerHTML='';
+  const names = currentEmpreendimentos.length ? currentEmpreendimentos
+    : [...new Set([...Object.keys(DEFAULT_MAPPING), ...Object.keys(mappingOverrides)])].sort();
+  if(names.length===0){ emptyMsg.style.display='block'; return; }
+  emptyMsg.style.display='none';
+  names.forEach(rawName=>{
+    const norm = rawName.trim().toUpperCase();
+    const effective = resolveSpi(rawName);
+    const fromDefault = !(norm in mappingOverrides) && (norm in DEFAULT_MAPPING);
+    const row = document.createElement('div');
+    row.className='map-row';
+    const opts = ['<option value="">Não mapeado</option>']
+      .concat(SPI_GROUPS.map((label,i)=>`<option value="${SPI_KEYS[i]}" ${effective===SPI_KEYS[i]?'selected':''}>${label}</option>`));
+    row.innerHTML = `<span>${rawName}${fromDefault?' <small style="color:#8fa799;">(planilha)</small>':''}</span><select data-norm="${norm}">${opts.join('')}</select>`;
+    list.appendChild(row);
+  });
+}
+
+function openModal(){
+  buildMapList();
+  document.getElementById('modalOverlay').style.display='flex';
+}
+function closeModal(){ document.getElementById('modalOverlay').style.display='none'; }
+
+document.getElementById('settingsBtn').addEventListener('click', openModal);
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalCancel').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', e=>{ if(e.target.id==='modalOverlay') closeModal(); });
+
+document.getElementById('modalSave').onclick = async ()=>{
+  document.querySelectorAll('#mapList select').forEach(sel=>{
+    const norm = sel.dataset.norm;
+    const val = sel.value;
+    if(val === (DEFAULT_MAPPING[norm] || '')){
+      delete mappingOverrides[norm];
+    } else {
+      mappingOverrides[norm] = val;
+    }
+  });
+
+  await saveMapping();
+  closeModal();
+  if(currentRecords.length>0) render();
+  buildSimMetaBar();
+  renderPdvTable();
+};
+
+document.getElementById('uploadBtn').onclick = ()=>document.getElementById('fileInput').click();
+document.getElementById('fileInput').addEventListener('change', e=>{
+  if(e.target.files.length>0) handleFile(e.target.files[0]);
+});
+
+function exportXml() {
+  if (!currentXmlText) {
+    alert("Nenhum dado carregado para exportar.");
+    return;
+  }
+  const blob = new Blob([currentXmlText], {type: 'application/xml;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '{DEDBD38E-D54E-DF11-AD89-001B78B9D994}';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('exportXmlBtn').addEventListener('click', exportXml);
+
+(async function init(){
+  await loadSettings();
+  await loadPlanejamento();
+  await loadMapping();
+  await loadRelacaoGerentes();
+  await loadHistorico();
+
+  try {
+    const response = await fetch('{DEDBD38E-D54E-DF11-AD89-001B78B9D994}?t=' + new Date().getTime());
+    if (response.ok) {
+      currentXmlText = await response.text();
+      lastUploadMeta = { uploadedAt: new Date().toUTCString() };
+    }
+  } catch(e) {}
+
+  buildSimMetaBar();
+  renderPdvTable();
+  buildManualHistTable();
+
+  if(currentXmlText) {
+    await loadFromText(currentXmlText);
+    updateFileStatus();
+  }
+})();
+</script>
+
+</body></html>
